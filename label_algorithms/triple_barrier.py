@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 
+def binary_trend_labels(prices: pd.Series, tEvents: pd.Series, pt: float, sl:float, volatility: float, minRet: float=0, t1: pd.Series=None, side: pd.Series=None) -> pd.Series:
+    labels = get_labels(prices, tEvents, [pt, sl], volatility, minRet, t1, side)
+    labels[labels == -1] = 0
+    return labels
+
 def get_labels(prices: pd.Series, tEvents: pd.Series, ptSl: list, volatility: float, minRet: float=0, t1: pd.Series=None, side: pd.Series=None) -> pd.Series:
     events = getEvents(prices, tEvents, ptSl, volatility, minRet, t1, side)
     labels = getBins(events, prices)['bin']

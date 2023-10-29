@@ -64,3 +64,8 @@ def downward_trend(last_upt_price: float, last_upt__time: int, price: float, tim
     elif price >= last_upt_price + tau*last_upt_price:
         return 1
     return None
+
+def binary_trend_labels(prices: pd.Series, tau: float=0.05, w: int=11) -> pd.Series:
+    labels = get_labels(prices, tau, w)
+    labels[labels == -1] = 0
+    return labels

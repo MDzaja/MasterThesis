@@ -1,7 +1,7 @@
 import pandas as pd
 
 #fixed time horizon labeling algorithm
-def get_labels(prices: pd.Series, tau: float=0.05, H: int=1) -> pd.Series:
+def binary_trend_labels(prices: pd.Series, tau: float=0.05, H: int=1) -> pd.Series:
     """
     Labels financial price series based on returns over a fixed horizon.
 
@@ -19,6 +19,8 @@ def get_labels(prices: pd.Series, tau: float=0.05, H: int=1) -> pd.Series:
     returns = returns.dropna()
 
     # Labeling
-    labels = returns.apply(lambda x: 1 if x >= tau else -1)
+    labels = returns.apply(lambda x: 1 if x >= tau else 0)
+
+    labels = labels.reindex(prices.index)
 
     return labels

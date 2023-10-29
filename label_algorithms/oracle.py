@@ -1,6 +1,6 @@
 import pandas as pd
 
-def get_labels(prices: pd.Series, fee: float=0) -> pd.Series:
+def binary_trend_labels(prices: pd.Series, fee: float=0) -> pd.Series:
     T = len(prices)
     
     # Initialize state matrix S and label array y
