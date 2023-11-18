@@ -63,8 +63,10 @@ jupyterlab-pygments==0.2.2
 jupyterlab-widgets==3.0.9
 jupyterlab_server==2.25.0
 keras==2.14.0
-Keras-Preprocessing==1.1.2
+Keras-Preprocessing @ file:///tmp/build/80754af9/keras-preprocessing_1612283640596/work
+keras-tuner==1.4.6
 kiwisolver==1.4.5
+kt-legacy==1.0.5
 libclang==16.0.6
 lxml==4.9.3
 Markdown==3.5.1
@@ -72,6 +74,9 @@ MarkupSafe==2.1.3
 matplotlib==3.8.1
 matplotlib-inline==0.1.6
 mistune==3.0.2
+mkl-fft @ file:///croot/mkl_fft_1695058164594/work
+mkl-random @ file:///croot/mkl_random_1695059800811/work
+mkl-service==2.4.0
 ml-dtypes==0.2.0
 multitasking==0.0.11
 nbclient==0.8.0
@@ -80,7 +85,7 @@ nbformat==5.9.2
 nest-asyncio==1.5.8
 notebook==7.0.6
 notebook_shim==0.2.3
-numpy==1.26.1
+numpy @ file:///croot/numpy_and_numpy_base_1695830428084/work/dist/numpy-1.26.0-cp311-cp311-linux_x86_64.whl#sha256=184178a893ff0b5e0cb1b0b7a0dddff49dc91424c4e4a01e29bcb05f27a698a6
 oauthlib==3.2.2
 opt-einsum==3.3.0
 overrides==7.4.0
@@ -119,9 +124,9 @@ rfc3986-validator==0.1.1
 rpds-py==0.12.0
 rsa==4.9
 scikit-learn==1.3.2
-scipy==1.11.3
+scipy @ file:///croot/scipy_1696543286448/work/dist/scipy-1.11.3-cp311-cp311-linux_x86_64.whl#sha256=f14db5b9e7e3d9de204ef7756f1a1f40f0983293019ed8eacb32191e2f658f9f
 Send2Trash==1.8.2
-six==1.16.0
+six @ file:///tmp/build/80754af9/six_1644875935023/work
 sniffio==1.3.0
 soupsieve==2.5
 stack-data==0.6.3

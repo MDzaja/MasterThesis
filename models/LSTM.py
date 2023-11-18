@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 
 import json
 import os
+import time
 
 import utils as model_utils
 
@@ -26,11 +27,19 @@ import utils as model_utils
 
 def build_model(hp, window_size, n_features):
     model = Sequential()
-    for i in range(hp.Int('num_lstm_layers', 1, 3)):
+
+    # Add the first LSTM layer with input_shape
+    model.add(Bidirectional(LSTM(
+        units=hp.Int('units1', min_value=32, max_value=512, step=32),
+        return_sequences=True,
+        input_shape=(window_size, n_features))))
+    model.add(Dropout(rate=hp.Float('dropout1', min_value=0.0, max_value=0.5, step=0.1)))
+
+    # Additional LSTM layers
+    for i in range(hp.Int('num_add_lstm_layers', 1, 3)):
         model.add(Bidirectional(LSTM(
             units=hp.Int(f'lstm_units_{i}', min_value=32, max_value=512, step=32),
-            return_sequences=(i < hp.get('num_lstm_layers') - 1),
-            input_shape=(window_size, n_features) if i == 0 else None)))
+            return_sequences=(i < hp.get('num_add_lstm_layers') - 1))))
         model.add(Dropout(rate=hp.Float(f'dropout_rate_{i}', min_value=0, max_value=0.5, step=0.1)))
 
     model.add(Dense(units=hp.Int('dense_units', min_value=32, max_value=256, step=32), activation='relu'))
@@ -51,7 +60,7 @@ def build_model(hp, window_size, n_features):
     # Compile the model
     model.compile(optimizer=opt,
         loss='binary_crossentropy',
-        metrics=[BinaryAccuracy(), Precision(), Recall()])
+        metrics=[BinaryAccuracy()])#, Precision(), Recall()])
 
     return model
 
@@ -68,7 +77,7 @@ def hyperparameter_optimization():
     tuner = BayesianOptimization(
         lambda hp: build_model(hp, X_train.shape[1], X_train.shape[2]),
         objective='val_loss',
-        max_trials=30,  # Adjust based on your computational budget
+        max_trials=100,  # Adjust based on your computational budget
         executions_per_trial=3,  # More executions for a more robust estimate
         directory='optimization_logs',
         project_name='lstm_1'
@@ -84,38 +93,60 @@ def hyperparameter_optimization():
 
 
 def save_trial_results(tuner, directory):
+    metric_name = 'val_binary_accuracy'
+    os.makedirs(directory, exist_ok=True)
+
     # Get all completed trials
     all_trials = tuner.oracle.get_best_trials(num_trials=tuner.oracle.max_trials)
+
     # Collect and save metrics for each trial
-    trial_metrics = []
+    all_trial_metrics = []
     for trial in all_trials:
-        trial_metrics.append({
+        # Access the history of the specified metric
+        metric_history = trial.metrics.get_history(metric_name)
+        # Extract the last metric value as a serializable format
+        last_metric_value = {'step': metric_history[-1].step, 'value': metric_history[-1].value} if metric_history else None
+
+        all_trial_metrics.append({
             'trial_id': trial.trial_id,
             'hyperparameters': trial.hyperparameters.values,
             'score': trial.score,
-            'metrics': trial.metrics.get_best_step_metrics()
+            'last_metric_value': last_metric_value
         })
 
     # Save the trial metrics to a file (JSON format)
     with open(os.path.join(directory, 'all_trial_metrics.json'), 'w') as f:
-        json.dump(trial_metrics, f, indent=4)
+        json.dump(all_trial_metrics, f, indent=4)
 
     # Get and save the best trials
     best_trials = tuner.oracle.get_best_trials(num_trials=2)
-    trial_metrics = []
+    best_trial_metrics = []
     for trial in best_trials:
-        trial_metrics.append({
+        # Access the history of the specified metric
+        metric_history = trial.metrics.get_history(metric_name)
+        # Extract the last metric value as a serializable format
+        last_metric_value = {'step': metric_history[-1].step, 'value': metric_history[-1].value} if metric_history else None
+
+        best_trial_metrics.append({
             'trial_id': trial.trial_id,
-            'hyperparameters': trial.values.hyperparameters.values,
+            'hyperparameters': trial.hyperparameters.values,
             'score': trial.score,
-            'metrics': trial.metrics.get_best_step_metrics()
+            'last_metric_value': last_metric_value
         })
 
     # Save the best hyperparameters info to a file (JSON format)
     with open(os.path.join(directory, 'best_trials_info.json'), 'w') as f:
-        json.dump(trial_metrics, f, indent=4)
+        json.dump(best_trial_metrics, f, indent=4)
 
 
 
 if __name__ == '__main__':
+    start_time = time.time()
+
     hyperparameter_optimization()
+
+    end_time = time.time()
+    execution_time = end_time - start_time
+    # Write the execution time to a file
+    with open('optimization_logs/lstm_1/best_trials_info.json', 'w') as file:
+        file.write(f'Execution time: {execution_time} seconds\n')
