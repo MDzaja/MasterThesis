@@ -35,7 +35,7 @@ def get_dummy_X_n_Y():
     fee = 0.0004
     labels = oracle.binary_trend_labels(prices['Close'], fee=fee)
 
-    window_size = 40
+    window_size = 60
     X = get_X(prices, window_size)[:-1]
     Y = get_Y(labels, window_size)
     
