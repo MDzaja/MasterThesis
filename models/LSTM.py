@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 import json
 import os
 import time
+import numpy as np
 
 import utils as model_utils
 
@@ -90,6 +91,7 @@ def hyperparameter_optimization():
 
     # Save the trial results
     save_trial_results(tuner, 'optimization_logs/lstm_1')
+    analyze_hyperparameters(tuner, 'optimization_logs/lstm_1')
 
 
 def save_trial_results(tuner, directory):
@@ -102,6 +104,9 @@ def save_trial_results(tuner, directory):
     # Collect and save metrics for each trial
     all_trial_metrics = []
     for trial in all_trials:
+        #print(trial.metrics.metrics.keys())
+        if metric_name not in trial.metrics.metrics.keys():
+            continue
         # Access the history of the specified metric
         metric_history = trial.metrics.get_history(metric_name)
         # Extract the last metric value as a serializable format
@@ -134,19 +139,72 @@ def save_trial_results(tuner, directory):
             'last_metric_value': last_metric_value
         })
 
+    best_trial_metrics.append(find_min_max_binary_accuracy(tuner))
+
     # Save the best hyperparameters info to a file (JSON format)
     with open(os.path.join(directory, 'best_trials_info.json'), 'w') as f:
         json.dump(best_trial_metrics, f, indent=4)
 
 
+def analyze_hyperparameters(tuner, directory):
+    analysis = {'numeric_params': {}, 'categorical_params': {}}
+
+    # Iterate through all trials
+    for trial_id, trial in tuner.oracle.trials.items():
+        hps = trial.hyperparameters.values
+        for hp, value in hps.items():
+            if isinstance(value, (int, float)):  # Numeric hyperparameters
+                if hp not in analysis['numeric_params']:
+                    analysis['numeric_params'][hp] = []
+                analysis['numeric_params'][hp].append(value)
+            else:  # Categorical hyperparameters
+                if hp not in analysis['categorical_params']:
+                    analysis['categorical_params'][hp] = {}
+                if value not in analysis['categorical_params'][hp]:
+                    analysis['categorical_params'][hp][value] = 0
+                analysis['categorical_params'][hp][value] += 1
+
+    # Process numeric hyperparameters
+    for hp, values in analysis['numeric_params'].items():
+        values_array = np.array(values)
+        analysis['numeric_params'][hp] = {
+            'average': float(np.mean(values_array)),
+            'min': float(np.min(values_array)),
+            'max': float(np.max(values_array)),
+            '90th_percentile': float(np.percentile(values_array, 90))
+        }
+
+    # Save the analysis to a JSON file
+    file_path = os.path.join(directory, 'hp_analysis.json')
+    with open(file_path, 'w') as f:
+        json.dump(analysis, f, indent=4)
+
+
+def find_min_max_binary_accuracy(tuner):
+    binary_accuracy_values = []
+    val_binary_accuracy_values = []
+
+    # Iterate through all trials
+    for trial_id, trial in tuner.oracle.trials.items():
+        # Check if the trial has the metrics we are interested in
+        if 'binary_accuracy' in trial.metrics.metrics:
+            history = trial.metrics.get_history('binary_accuracy')
+            binary_accuracy_values.extend([entry.value for entry in history])
+
+        if 'val_binary_accuracy' in trial.metrics.metrics:
+            history = trial.metrics.get_history('val_binary_accuracy')
+            val_binary_accuracy_values.extend([entry.value for entry in history])
+
+    # Compute min and max
+    min_max_results = {
+        'min_binary_accuracy': min(binary_accuracy_values) if binary_accuracy_values else None,
+        'max_binary_accuracy': max(binary_accuracy_values) if binary_accuracy_values else None,
+        'min_val_binary_accuracy': min(val_binary_accuracy_values) if val_binary_accuracy_values else None,
+        'max_val_binary_accuracy': max(val_binary_accuracy_values) if val_binary_accuracy_values else None
+    }
+
+    return min_max_results
+
 
 if __name__ == '__main__':
-    start_time = time.time()
-
     hyperparameter_optimization()
-
-    end_time = time.time()
-    execution_time = end_time - start_time
-    # Write the execution time to a file
-    with open('optimization_logs/lstm_1/best_trials_info.json', 'w') as file:
-        file.write(f'Execution time: {execution_time} seconds\n')
