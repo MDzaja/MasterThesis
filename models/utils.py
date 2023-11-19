@@ -62,7 +62,7 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
     model.fit(X_train, Y_train, epochs=epochs, validation_data=(X_val, Y_val), batch_size=64, class_weight=class_weight_dict, callbacks=[early_stopping])
 
 
-def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100):
+def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64):
     # EarlyStopping callback
     early_stopping = EarlyStopping(monitor='val_loss', patience=early_stopping_patience)
 
@@ -77,7 +77,7 @@ def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val
     )
 
     # Search for the best hyperparameters
-    tuner.search(X_train, Y_train, epochs=epochs, validation_data=(X_val, Y_val), callbacks=[early_stopping])
+    tuner.search(X_train, Y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, Y_val), callbacks=[early_stopping])
 
     # Analyze hyperparameters
     hp_stats = {}
