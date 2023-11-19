@@ -45,23 +45,6 @@ def build_model(window_size, n_features):
 
     return model
 
-def train_model():
-    X, Y = model_utils.get_dummy_X_n_Y()
-
-    # Compute class weights
-    classes = np.unique(Y)
-    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y.reshape(-1))
-    class_weight_dict = dict(zip(classes, class_weights))
-
-    X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, shuffle=False)
-    window_size, n_features = X_train.shape[1], X_train.shape[2]
-
-    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
-
-    model = build_model(window_size, n_features)
-
-    model.fit(X_train, Y_train, epochs=100, validation_data=(X_val, Y_val), batch_size=64, class_weight=class_weight_dict, callbacks=[early_stopping])
-
 
 def cv_train_model():
     X, Y = model_utils.get_dummy_X_n_Y()
