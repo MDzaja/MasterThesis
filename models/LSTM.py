@@ -93,7 +93,7 @@ def build_model_hp(hp, window_size, n_features):
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log'),
+        initial_learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=0.1, sampling='log'),
         decay_steps=hp.Int('decay_steps', min_value=1000, max_value=10000, step=1000),
         decay_rate=hp.Float('decay_rate', min_value=0.8, max_value=0.99))
 
@@ -108,13 +108,15 @@ def build_model_hp(hp, window_size, n_features):
 
 
 if __name__ == '__main__':
-    X, Y = model_utils.get_dummy_X_n_Y()
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    
+    X, Y = model_utils.get_dummy_X_n_Y(60)
     X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, shuffle=False)
 
-    model_utils.tune_hyperparameters(build_model_hp, X_train, Y_train, X_val, Y_val, 
-                                            'optimization_logs/lstm/test1', 'trials', 
+    model_utils.hyperparameter_optimization(build_model_hp, X_train, Y_train, X_val, Y_val, 
+                                            'optimization_logs/lstm/test2', 'trials', 
                                             max_trials=50, executions_per_trial=2, 
                                             early_stopping_patience=30, epochs=150)
     
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-    model_utils.train_model(build_model, X_train, Y_train, X_val, Y_val, early_stopping_patience=30, epochs=150)
+    
+    #model_utils.train_model(build_model, X_train, Y_train, X_val, Y_val, early_stopping_patience=30, epochs=150)
