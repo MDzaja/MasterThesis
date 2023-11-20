@@ -11,14 +11,30 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
 import json
+import pandas as pd
 
 sys.path.append('../')
 from label_algorithms import oracle
 
+def get_tf_n_Y(window_size=60):
+    features_df = pd.read_csv('../features/test_features.csv', index_col=0)
+
+    start_date = features_df.index[0]
+    end_date = pd.to_datetime(features_df.index[-1]) + pd.Timedelta(days=1)
+    close = yf.download('GC=F', start_date, end_date, interval='1d')['Close']
+    fee = 0.0004
+    labels = oracle.binary_trend_labels(close, fee=fee)
+
+    X = get_X(features_df, window_size)[:-1]
+    Y = get_Y(labels, window_size)
+
+    return X, Y
+
+
 
 def get_X(features, window_size):
-    # Normalize features to range between 0 and 1
-    scaler = MinMaxScaler(feature_range=(0, 1))
+    # Normalize features to range between -1 and 1
+    scaler = MinMaxScaler(feature_range=(-1, 1))
     scaled_data = scaler.fit_transform(features.values)
 
     # Create the 3D input data shape [samples, time_steps, features]
@@ -105,7 +121,8 @@ def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val
         json.dump(hp_stats, f, default=convert_types, indent=4)
 
     # Analyze overall trials
-    sorted_trials = sorted(tuner.oracle.trials.values(), key=lambda t: t.score if t.score is not None else float('inf'))
+    non_null_trials = [t for t in tuner.oracle.trials.values() if t.score is not None]
+    sorted_trials = sorted_trials = sorted(non_null_trials, key=lambda t: t.score)
     best_trial = sorted_trials[0]
     worst_trial = sorted_trials[-1]
 

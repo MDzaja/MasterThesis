@@ -104,7 +104,7 @@ def build_model_hp(hp, n_length, n_features):
 if __name__ == '__main__':
     #os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
-    X, Y = model_utils.get_dummy_X_n_Y(120)
+    X, Y = model_utils.get_tf_n_Y(window_size=120)
     n_steps = 12
     n_length = 10
     n_fetures = X.shape[2]
@@ -112,8 +112,8 @@ if __name__ == '__main__':
     X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, shuffle=False)
 
     model_utils.hyperparameter_optimization(build_model_hp, X_train, Y_train, X_val, Y_val, 
-                                            'optimization_logs/cnn_lstm/test2', 'trials', 
+                                            'optimization_logs/cnn_lstm/test_w_features', 'trials', 
                                             max_trials=50, executions_per_trial=2, 
-                                            early_stopping_patience=100, epochs=500)
+                                            early_stopping_patience=100, epochs=500, batch_size=64)
     
     #model_utils.train_model(build_model, X_train, Y_train, X_val, Y_val, early_stopping_patience=100, epochs=500)

@@ -1,0 +1,102 @@
+{
+    "best_trial": {
+        "trial_id": "22",
+        "hyperparameters": {
+            "first_conv_filters": 32,
+            "first_conv_kernel_size": 3,
+            "num_conv_layers": 1,
+            "final_pool_size": 2,
+            "final_conv_dropout": 0.30000000000000004,
+            "num_lstm_layers": 1,
+            "lstm_units_0": 320,
+            "lstm_dropout": 0.2,
+            "dense_units": 256,
+            "learning_rate": 0.00018051890126848154,
+            "decay_steps": 3000,
+            "decay_rate": 0.9666262996964632,
+            "conv_filters_1": 128,
+            "conv_kernel_size_1": 5,
+            "conv_filters_2": 64,
+            "conv_kernel_size_2": 5,
+            "lstm_units_1": 352,
+            "lstm_units_2": 224
+        },
+        "score": 0.6382569670677185,
+        "metrics": {
+            "loss": [
+                0.6268500685691833
+            ],
+            "binary_accuracy": [
+                0.6717548966407776
+            ],
+            "precision": [
+                0.6721807420253754
+            ],
+            "recall": [
+                0.9942547678947449
+            ],
+            "val_loss": [
+                0.6382569670677185
+            ],
+            "val_binary_accuracy": [
+                0.6597892940044403
+            ],
+            "val_precision": [
+                0.6615254878997803
+            ],
+            "val_recall": [
+                0.9953580796718597
+            ]
+        }
+    },
+    "worst_trial": {
+        "trial_id": "03",
+        "hyperparameters": {
+            "first_conv_filters": 64,
+            "first_conv_kernel_size": 3,
+            "num_conv_layers": 3,
+            "final_pool_size": 2,
+            "final_conv_dropout": 0.0,
+            "num_lstm_layers": 1,
+            "lstm_units_0": 480,
+            "lstm_dropout": 0.2,
+            "dense_units": 32,
+            "learning_rate": 0.003536577354736815,
+            "decay_steps": 7000,
+            "decay_rate": 0.9758598126645889,
+            "conv_filters_1": 96,
+            "conv_kernel_size_1": 3,
+            "conv_filters_2": 128,
+            "conv_kernel_size_2": 5,
+            "lstm_units_1": 320,
+            "lstm_units_2": 256
+        },
+        "score": 0.6397122740745544,
+        "metrics": {
+            "loss": [
+                0.6354298889636993
+            ],
+            "binary_accuracy": [
+                0.6690094470977783
+            ],
+            "precision": [
+                0.6690094470977783
+            ],
+            "recall": [
+                1.0
+            ],
+            "val_loss": [
+                0.6397122740745544
+            ],
+            "val_binary_accuracy": [
+                0.6619842052459717
+            ],
+            "val_precision": [
+                0.6619842052459717
+            ],
+            "val_recall": [
+                1.0
+            ]
+        }
+    }
+}

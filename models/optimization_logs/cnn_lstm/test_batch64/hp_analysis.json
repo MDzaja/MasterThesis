@@ -1,0 +1,146 @@
+{
+    "first_conv_filters": {
+        "type": "numerical",
+        "average": 79.36,
+        "median": 96.0,
+        "max": 128,
+        "min": 32,
+        "90th_percentile": 128.0
+    },
+    "first_conv_kernel_size": {
+        "type": "numerical",
+        "average": 4.08,
+        "median": 5.0,
+        "max": 5,
+        "min": 3,
+        "90th_percentile": 5.0
+    },
+    "num_conv_layers": {
+        "type": "numerical",
+        "average": 2.12,
+        "median": 2.0,
+        "max": 3,
+        "min": 1,
+        "90th_percentile": 3.0
+    },
+    "final_pool_size": {
+        "type": "numerical",
+        "average": 2.54,
+        "median": 3.0,
+        "max": 3,
+        "min": 2,
+        "90th_percentile": 3.0
+    },
+    "final_conv_dropout": {
+        "type": "numerical",
+        "average": 0.22400000000000003,
+        "median": 0.2,
+        "max": 0.4,
+        "min": 0.0,
+        "90th_percentile": 0.4
+    },
+    "num_lstm_layers": {
+        "type": "numerical",
+        "average": 1.96,
+        "median": 2.0,
+        "max": 3,
+        "min": 1,
+        "90th_percentile": 3.0
+    },
+    "lstm_units_0": {
+        "type": "numerical",
+        "average": 256.0,
+        "median": 256.0,
+        "max": 512,
+        "min": 32,
+        "90th_percentile": 448.0
+    },
+    "lstm_dropout": {
+        "type": "numerical",
+        "average": 0.21600000000000005,
+        "median": 0.2,
+        "max": 0.4,
+        "min": 0.0,
+        "90th_percentile": 0.4
+    },
+    "dense_units": {
+        "type": "numerical",
+        "average": 148.48,
+        "median": 160.0,
+        "max": 256,
+        "min": 32,
+        "90th_percentile": 256.0
+    },
+    "learning_rate": {
+        "type": "numerical",
+        "average": 0.009223856521176854,
+        "median": 0.001727898111969546,
+        "max": 0.09394593288922647,
+        "min": 0.00010362849737752791,
+        "90th_percentile": 0.0305500071708531
+    },
+    "decay_steps": {
+        "type": "numerical",
+        "average": 5540.0,
+        "median": 6000.0,
+        "max": 10000,
+        "min": 1000,
+        "90th_percentile": 9100.000000000002
+    },
+    "decay_rate": {
+        "type": "numerical",
+        "average": 0.9011572000393536,
+        "median": 0.8995962606431396,
+        "max": 0.9879679774851111,
+        "min": 0.8044286801466889,
+        "90th_percentile": 0.9749006368147025
+    },
+    "conv_filters_1": {
+        "type": "numerical",
+        "average": 83.84,
+        "median": 96.0,
+        "max": 128,
+        "min": 32,
+        "90th_percentile": 128.0
+    },
+    "conv_kernel_size_1": {
+        "type": "numerical",
+        "average": 3.76,
+        "median": 3.0,
+        "max": 5,
+        "min": 3,
+        "90th_percentile": 5.0
+    },
+    "lstm_units_1": {
+        "type": "numerical",
+        "average": 273.28,
+        "median": 288.0,
+        "max": 512,
+        "min": 32,
+        "90th_percentile": 419.20000000000005
+    },
+    "conv_filters_2": {
+        "type": "numerical",
+        "average": 82.78260869565217,
+        "median": 80.0,
+        "max": 128,
+        "min": 32,
+        "90th_percentile": 128.0
+    },
+    "conv_kernel_size_2": {
+        "type": "numerical",
+        "average": 3.6956521739130435,
+        "median": 3.0,
+        "max": 5,
+        "min": 3,
+        "90th_percentile": 5.0
+    },
+    "lstm_units_2": {
+        "type": "numerical",
+        "average": 233.24444444444444,
+        "median": 192.0,
+        "max": 480,
+        "min": 32,
+        "90th_percentile": 416.0
+    }
+}
