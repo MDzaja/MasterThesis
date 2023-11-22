@@ -4,7 +4,7 @@ from tensorflow.keras.layers import Conv1D, MaxPooling1D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
+from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from keras_tuner import BayesianOptimization
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
@@ -20,27 +20,29 @@ import utils as model_utils
 def build_model(n_length, n_features):
 
     model = Sequential()
-    model.add(TimeDistributed(Conv1D(filters=64, kernel_size=3, activation='relu'), input_shape=(None, n_length, n_features)))
-    model.add(TimeDistributed(Conv1D(filters=64, kernel_size=3, activation='relu')))
+    model.add(TimeDistributed(Conv1D(filters=128, kernel_size=3, activation='relu', padding='same'), input_shape=(None, n_length, n_features)))
+    model.add(TimeDistributed(Conv1D(filters=128, kernel_size=5, activation='relu', padding='same')))
+    model.add(TimeDistributed(Conv1D(filters=96, kernel_size=5, activation='relu')))
     model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
-    model.add(TimeDistributed(Dropout(0.5)))
+    model.add(TimeDistributed(Dropout(0.4)))
     model.add(TimeDistributed(Flatten()))
-    model.add(Bidirectional(LSTM(100)))
-    model.add(Dense(100, activation='relu'))
-    model.add(Dropout(0.5))
+    model.add(Bidirectional(LSTM(192, return_sequences=True)))
+    model.add(Bidirectional(LSTM(160, return_sequences=True)))
+    model.add(Bidirectional(LSTM(384, return_sequences=False)))
+    #model.add(Dropout(0.5))
+    model.add(Dense(192, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.001,
-        decay_steps=6500,
-        decay_rate=0.96,
-        staircase=True)
+        initial_learning_rate=0.0037,
+        decay_steps=7000,
+        decay_rate=0.84)
 
-    opt = Adam(learning_rate=0.001)
+    opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
                   loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall()])
+                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
 
     return model
 
@@ -107,8 +109,8 @@ if __name__ == '__main__':
     X, Y = model_utils.get_ft_n_Y(window_size=120)
     n_steps = 12
     n_length = 10
-    n_fetures = X.shape[2]
-    X = X.reshape((X.shape[0], n_steps, n_length, n_fetures))
+    n_features = X.shape[2]
+    X = X.reshape((X.shape[0], n_steps, n_length, n_features))
     X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, shuffle=False)
 
     model_utils.hyperparameter_optimization(build_model_hp, X_train, Y_train, X_val, Y_val, 

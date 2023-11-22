@@ -46,7 +46,7 @@ def get_X(data, window_size):
 
 
 def get_Y(labels: pd.Series, window_size):
-    return labels.shift(-1)[window_size:-1].astype(int).reshape(-1, 1)
+    return labels.shift(-1)[window_size-1:-1].values.astype(int).reshape(-1, 1)
 
 
 def get_dummy_X_n_Y(window_size=60):
@@ -71,7 +71,7 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
     class_weight_dict = dict(zip(classes, class_weights))
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=early_stopping_patience)
+    early_stopping = EarlyStopping(monitor='loss', patience=early_stopping_patience)
 
     model = build_model_func(X_train.shape[-2], X_train.shape[-1])
 

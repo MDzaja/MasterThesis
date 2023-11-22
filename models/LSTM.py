@@ -4,7 +4,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout, Activation, Bidirectio
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
+from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from keras_tuner import BayesianOptimization
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
@@ -20,57 +20,30 @@ import utils as model_utils
 def build_model(window_size, n_features):
     model = Sequential()
     model.add(Bidirectional(
-        LSTM(170,
+        LSTM(384,
              return_sequences=True,
              input_shape=(window_size, n_features)
              )
     ))
-    model.add(Bidirectional(LSTM(360, return_sequences=True)))
-    model.add(Bidirectional(LSTM(360, return_sequences=False)))
-    model.add(Dense(units=150, activation='relu'))
-    model.add(Dropout(rate=0.1))
+    model.add(Bidirectional(LSTM(192, return_sequences=True)))
+    model.add(Bidirectional(LSTM(224, return_sequences=True)))
+    model.add(Bidirectional(LSTM(128, return_sequences=False)))
+    model.add(Dense(units=224, activation='relu'))
+    model.add(Dropout(rate=0.4))
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.001,
-        decay_steps=6500,
-        decay_rate=0.96,
-        staircase=True)
+        initial_learning_rate=0.0006,
+        decay_steps=8000,
+        decay_rate=0.84)
 
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
                   loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall()])
+                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
 
     return model
-
-
-def cv_train_model():
-    X, Y = model_utils.get_dummy_X_n_Y()
-
-    tscv = TimeSeriesSplit(n_splits=10)
-
-    # Iterate over each fold
-    for fold, (train_index, test_index) in enumerate(tscv.split(X)):
-        print(f"Training on fold {fold}...")
-        
-        # Split your data into training and testing sets for the current fold
-        X_train, X_test = X[train_index], X[test_index]
-        Y_train, Y_test = Y[train_index], Y[test_index]
-        
-        # Determine the window size and number of features from the input shape
-        window_size, n_features = X_train.shape[1], X_train.shape[2]
-        
-        # Build and compile the model
-        model = build_model(window_size, n_features)
-        
-        # Fit the model to the training data
-        model.fit(X_train, Y_train, epochs=10)  # You can add more parameters such as batch_size if needed
-        
-        # Evaluate the model on the test data
-        eval_result = model.evaluate(X_test, Y_test)
-        print(f"Fold {fold} - Loss: {eval_result[0]}, Binary Accuracy: {eval_result[1]}")
 
 
 def build_model_hp(hp, window_size, n_features):
@@ -105,6 +78,32 @@ def build_model_hp(hp, window_size, n_features):
         metrics=[BinaryAccuracy(), Precision(), Recall()])
 
     return model
+
+def cv_train_model():
+    X, Y = model_utils.get_dummy_X_n_Y()
+
+    tscv = TimeSeriesSplit(n_splits=10)
+
+    # Iterate over each fold
+    for fold, (train_index, test_index) in enumerate(tscv.split(X)):
+        print(f"Training on fold {fold}...")
+        
+        # Split your data into training and testing sets for the current fold
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        
+        # Determine the window size and number of features from the input shape
+        window_size, n_features = X_train.shape[1], X_train.shape[2]
+        
+        # Build and compile the model
+        model = build_model(window_size, n_features)
+        
+        # Fit the model to the training data
+        model.fit(X_train, Y_train, epochs=10)  # You can add more parameters such as batch_size if needed
+        
+        # Evaluate the model on the test data
+        eval_result = model.evaluate(X_test, Y_test)
+        print(f"Fold {fold} - Loss: {eval_result[0]}, Binary Accuracy: {eval_result[1]}")
 
 
 if __name__ == '__main__':

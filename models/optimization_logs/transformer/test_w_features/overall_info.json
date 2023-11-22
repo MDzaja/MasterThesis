@@ -7,7 +7,7 @@
             "num_heads": 4,
             "ff_dim": 2,
             "dropout": 0.30000000000000004,
-            "num_mlp_layers": 1,
+            "num_mlp_layers": 3,
             "mlp_units_0": 288,
             "mlp_dropout": 0.2,
             "learning_rate": 0.0027080629459047237,

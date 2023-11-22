@@ -3,7 +3,7 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, MaxPooling1D, TimeDistributed, LSTM, Bidirectional, LayerNormalization, MultiHeadAttention, GlobalAveragePooling1D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
+from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 
 from sklearn.model_selection import train_test_split
 import json
@@ -29,17 +29,16 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     return x + res
 
 
-def build_model(
-    input_shape,
-    head_size,
-    num_heads,
-    ff_dim,
-    num_transformer_blocks,
-    mlp_units,
-    dropout=0,
-    mlp_dropout=0,
-):
-    inputs = Input(shape=input_shape)
+def build_model(window_size, n_features):
+    num_transformer_blocks = 3
+    head_size = 32
+    num_heads = 4
+    ff_dim = 2
+    dropout = 0.3
+    mlp_units = [288, 160, 288]
+    mlp_dropout = 0.2
+
+    inputs = Input(shape=(window_size, n_features))
     x = inputs
     for _ in range(num_transformer_blocks):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
@@ -49,7 +48,26 @@ def build_model(
         x = Dense(dim, activation="relu")(x)
         x = Dropout(mlp_dropout)(x)
     outputs = Dense(1, activation="sigmoid")(x)
-    return Model(inputs, outputs)
+
+    model = Model(inputs, outputs)
+
+    # Learning rate schedule
+    lr_schedule = ExponentialDecay(
+        initial_learning_rate=0.0027,
+        decay_steps=10000,
+        decay_rate=0.81)
+
+    # Optimizer
+    opt = Adam(learning_rate=lr_schedule)
+
+    # Compile the model
+    model.compile(
+        optimizer=opt,
+        loss='binary_crossentropy',
+        metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()]
+    )
+
+    return model
 
 
 def build_model_hp(hp, window_size, n_features):
