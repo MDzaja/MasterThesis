@@ -22,7 +22,7 @@ import CNN_LSTM as cnn_lstm_impl
 import utils as model_utils
 import transformer as tr_impl
 
-def test_models(labeling, X_train, X_val, X_test, Y_train, Y_val, Y_test):
+def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_test):
     # Compute class weights
     classes = np.unique(Y_train)
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
@@ -31,21 +31,21 @@ def test_models(labeling, X_train, X_val, X_test, Y_train, Y_val, Y_test):
     model_configs = {
         'cnn_lstm': {
             'build_func': cnn_lstm_impl.build_model,
-            'epochs': 1,
+            'epochs': 1000,
             'batch_size': 64,
-            'patience': 1
+            'patience': 100
         },
         'lstm': {
             'build_func': lstm_impl.build_model,
-            'epochs': 1,
+            'epochs': 1000,
             'batch_size': 64,
-            'patience': 1
+            'patience': 100
         },
         'transformer': {
             'build_func': tr_impl.build_model,
-            'epochs': 1,
+            'epochs': 1000,
             'batch_size': 64,
-            'patience': 1
+            'patience': 100
         }
     }
 
@@ -77,7 +77,7 @@ def test_models(labeling, X_train, X_val, X_test, Y_train, Y_val, Y_test):
         test_eval = model.evaluate(_X_test, Y_test)
 
         # Save the model
-        model.save(f"test-logs/saved_models/{labeling}-{model_name}.keras")
+        model.save(f"test_logs/saved_models/{data_type}-{labeling}-{model_name}.keras")
 
         # Store results
         results[model_name] = {
@@ -109,7 +109,7 @@ def test_models(labeling, X_train, X_val, X_test, Y_train, Y_val, Y_test):
 
 if __name__ == '__main__':
     ticker_symbol = 'GC=F'
-    start_date = '1995-01-01'
+    start_date = '2000-01-01'
     end_date = '2023-11-01'
     raw_data = yf.download(ticker_symbol, start_date, end_date, interval='1d')
     raw_data.index = raw_data.index.tz_localize(None)
@@ -136,19 +136,18 @@ if __name__ == '__main__':
 
     window_size = 60
     raw_X = model_utils.get_X(raw_data, window_size)
-    raw_Y_dict = {key: model_utils.get_Y(series, window_size) for key, series in labels_dict.items()}
-    feat_X = model_utils.get_X(features_df, 1)[window_size-1:]
-    feat_Y_dict = {key: model_utils.get_Y(series, 1)[window_size-1:] for key, series in labels_dict.items()}
+    feat_X = model_utils.get_X(features_df, window_size)
+    Y_dict = {key: model_utils.get_Y(series, window_size) for key, series in labels_dict.items()}
 
     raw_X_train, raw_X_val, feat_X_train, feat_X_val = train_test_split(raw_X, feat_X, test_size=0.2, shuffle=False)
-    raw_Y_train_dict, raw_Y_val_dict, feat_Y_train_dict, feat_Y_val_dict = {}, {}, {}, {}
-    for key in raw_Y_dict.keys():
-        raw_Y_train_dict[key], raw_Y_val_dict[key], feat_Y_train_dict[key], feat_Y_val_dict[key] = train_test_split(raw_Y_dict[key], feat_Y_dict[key], test_size=0.2, shuffle=False)
-
     raw_X_val, raw_X_test, feat_X_val, feat_X_test = train_test_split(raw_X_val, feat_X_val, test_size=0.25, shuffle=False)
-    raw_Y_test_dict, feat_Y_test_dict = {}, {}
-    for key in raw_Y_val_dict.keys():
-        raw_Y_val_dict[key], raw_Y_test_dict[key], feat_Y_val_dict[key], feat_Y_test_dict[key] = train_test_split(raw_Y_val_dict[key], feat_Y_val_dict[key], test_size=0.25, shuffle=False)
+
+    Y_train_dict, Y_val_dict = {}, {}
+    for key in Y_dict.keys():
+        Y_train_dict[key], Y_val_dict[key] = train_test_split(Y_dict[key], test_size=0.2, shuffle=False)
+    Y_test_dict, feat_Y_test_dict = {}, {}
+    for key in Y_val_dict.keys():
+        Y_val_dict[key], Y_test_dict[key] = train_test_split(Y_val_dict[key], test_size=0.25, shuffle=False)
 
     # Xs: raw_X_train, raw_X_val, raw_X_test, feat_X_train, feat_X_val, feat_X_test
     # Ys: raw_Y_train_dict, raw_Y_val_dict, raw_Y_test_dict, feat_Y_train_dict, feat_Y_val_dict, feat_Y_test_dict
@@ -157,20 +156,19 @@ if __name__ == '__main__':
     data_type = 'raw_data'
     metrics[data_type] = {}
     for labeling in labels_dict.keys():
-        metrics[data_type][labeling] = test_models(labeling, 
+        metrics[data_type][labeling] = test_models(labeling, data_type,
                                                    raw_X_train, raw_X_val, raw_X_test, 
-                                                   raw_Y_train_dict[labeling], raw_Y_val_dict[labeling], raw_Y_test_dict[labeling]
+                                                   Y_train_dict[labeling], Y_val_dict[labeling], Y_test_dict[labeling]
                                                    )
-        break
     data_type = 'features'
     metrics[data_type] = {}
     for labeling in labels_dict.keys():
-        metrics[data_type][labeling] = test_models(labeling, 
+        metrics[data_type][labeling] = test_models(labeling, data_type,
                                                    feat_X_train, feat_X_val, feat_X_test, 
-                                                   feat_Y_train_dict[labeling], feat_Y_val_dict[labeling], feat_Y_test_dict[labeling]
+                                                   Y_train_dict[labeling], Y_val_dict[labeling], Y_test_dict[labeling]
                                                    )
-        break
+
     # Write metrics to JSON file
-    results_filename = f"test-logs/metrics.json"
+    results_filename = f"test_logs/metrics.json"
     with open(results_filename, 'w') as file:
         json.dump(metrics, file, indent=6)

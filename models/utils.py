@@ -12,6 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
 import json
 import pandas as pd
+import pickle
 
 sys.path.append('../')
 from label_algorithms import oracle
@@ -30,6 +31,35 @@ def get_ft_n_Y(window_size=60):
 
     return X, Y
 
+
+def get_aligned_raw_feat_lbl():
+    ticker_symbol = 'GC=F'
+    start_date = '2000-01-01'
+    end_date = '2023-11-01'
+    raw_data = yf.download(ticker_symbol, start_date, end_date, interval='1d')
+    raw_data.index = raw_data.index.tz_localize(None)
+
+    features_df = pd.read_csv('../features/test_features.csv', index_col=0)
+
+    with open('../label_algorithms/labels_dict.pkl', 'rb') as file:
+        labels_dict = pickle.load(file)
+
+    # Ensure indices are in the same format
+    raw_data.index = pd.to_datetime(raw_data.index)
+    features_df.index = pd.to_datetime(features_df.index)
+    labels_dict = {k: pd.Series(v, index=pd.to_datetime(v.index)) for k, v in labels_dict.items()}
+
+    # Find the common indices
+    common_indices = raw_data.index.intersection(features_df.index)
+    for label_series in labels_dict.values():
+        common_indices = common_indices.intersection(label_series.index)
+
+    # Reindex raw_data, features_df, and each Series in labels_dict
+    raw_data = raw_data.reindex(common_indices)
+    features_df = features_df.reindex(common_indices)
+    labels_dict = {key: series.reindex(common_indices) for key, series in labels_dict.items()}
+
+    return raw_data, features_df, labels_dict
 
 
 def get_X(data, window_size):

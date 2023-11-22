@@ -4,3 +4,5 @@
 __pycache__/
 
 models/optimization_logs/**/trials/
+
+**/test_logs/saved_models/
