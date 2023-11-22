@@ -104,7 +104,7 @@ def build_model_hp(hp, n_length, n_features):
 if __name__ == '__main__':
     #os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
-    X, Y = model_utils.get_tf_n_Y(window_size=120)
+    X, Y = model_utils.get_ft_n_Y(window_size=120)
     n_steps = 12
     n_length = 10
     n_fetures = X.shape[2]

@@ -1,3 +1,4 @@
+import sys
 import matplotlib.dates as mdates
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,6 +8,15 @@ from functools import partial
 import concurrent.futures
 from tqdm import tqdm
 import threading
+import pickle
+import yfinance as yf
+
+import ct_two_state as ct2
+import ct_three_state as ct3
+import fixed_time_horizon as fth
+import oracle
+import triple_barrier as tb
+
 
 def plot_labels(title: str, prices: pd.Series, labels: pd.Series):
     # Get union of indices
@@ -108,3 +118,41 @@ def compute_return(prices: pd.Series, labels: pd.Series, fee: float=0) -> float:
 
     return cumulative_return - 1.0  # Subtract 1 to get the actual return, not the factor
     
+
+def save_all_labels(prices: pd.Series) -> dict:
+    labels_dict = {}
+    
+    tau = 0.00096
+    labels_dict['ct_two_state'] = ct2.binary_trend_labels(prices, tau=tau)
+
+    tau = 0.00096
+    window = 13
+    labels_dict['ct_three_state'] = ct3.binary_trend_labels(prices, tau=tau, w=window)
+
+    tau = 0.00005
+    H = 8
+    labels_dict['fixed_time_horizon'] = fth.binary_trend_labels(prices, tau=tau, H=H)
+
+    fee = 0.0004
+    labels_dict['oracle'] = oracle.binary_trend_labels(prices, fee=fee)
+
+    tEvents = prices.index
+    t1 = prices.index.searchsorted(tEvents + pd.Timedelta(hours=1))
+    t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
+    minuteVol = tb.getMinuteVol(prices, span=100)
+    minuteVol = minuteVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
+    labels_dict['triple_barrier'] = tb.binary_trend_labels(prices, tEvents, pt=0.6, sl=1.3, volatility=minuteVol, minRet=0, t1=t1)
+
+    with open('labels_dict.pkl', 'wb') as file:
+        pickle.dump(labels_dict, file)
+
+
+if __name__ == '__main__':
+    ticker_symbol = 'GC=F'
+    start_date = '2000-01-01'
+    end_date = '2023-11-01'
+
+    prices = yf.download(ticker_symbol, start_date, end_date, interval='1d')['Close']
+    prices.index = prices.index.tz_localize(None)
+
+    save_all_labels(prices)

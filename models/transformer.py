@@ -106,7 +106,7 @@ def build_model_hp(hp, window_size, n_features):
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
-    X, Y = model_utils.get_tf_n_Y(window_size=60)
+    X, Y = model_utils.get_ft_n_Y(window_size=60)
     X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, shuffle=False)
 
     model_utils.hyperparameter_optimization(build_model_hp, X_train, Y_train, X_val, Y_val,

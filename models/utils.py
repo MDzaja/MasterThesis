@@ -16,7 +16,7 @@ import pandas as pd
 sys.path.append('../')
 from label_algorithms import oracle
 
-def get_tf_n_Y(window_size=60):
+def get_ft_n_Y(window_size=60):
     features_df = pd.read_csv('../features/test_features.csv', index_col=0)
 
     start_date = features_df.index[0]
@@ -32,10 +32,10 @@ def get_tf_n_Y(window_size=60):
 
 
 
-def get_X(features, window_size):
+def get_X(data, window_size):
     # Normalize features to range between -1 and 1
     scaler = MinMaxScaler(feature_range=(-1, 1))
-    scaled_data = scaler.fit_transform(features.values)
+    scaled_data = scaler.fit_transform(data.values)
 
     # Create the 3D input data shape [samples, time_steps, features]
     X = []
@@ -45,8 +45,8 @@ def get_X(features, window_size):
     return np.array(X)
 
 
-def get_Y(labels, window_size):
-    return labels[window_size:].shift(-1)[:-1].values.astype(int).reshape(-1, 1)
+def get_Y(labels: pd.Series, window_size):
+    return labels.shift(-1)[window_size:-1].astype(int).reshape(-1, 1)
 
 
 def get_dummy_X_n_Y(window_size=60):
