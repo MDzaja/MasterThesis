@@ -4,5 +4,3 @@
 __pycache__/
 
 models/optimization_logs/**/trials/
-
-**/test_features.csv
