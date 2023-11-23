@@ -29,14 +29,14 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     return x + res
 
 
-def build_model(window_size, n_features):
-    num_transformer_blocks = 3
-    head_size = 32
+def build_model_raw(window_size, n_features):
+    num_transformer_blocks = 2
+    head_size = 128
     num_heads = 4
-    ff_dim = 2
-    dropout = 0.3
-    mlp_units = [288, 160, 288]
-    mlp_dropout = 0.2
+    ff_dim = 16
+    dropout = 0.2
+    mlp_units = [160, 416]
+    mlp_dropout = 0
 
     inputs = Input(shape=(window_size, n_features))
     x = inputs
@@ -53,9 +53,50 @@ def build_model(window_size, n_features):
 
     # Learning rate schedule
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0027,
-        decay_steps=10000,
-        decay_rate=0.81)
+        initial_learning_rate=0.0007,
+        decay_steps=2000,
+        decay_rate=0.97)
+
+    # Optimizer
+    opt = Adam(learning_rate=lr_schedule)
+
+    # Compile the model
+    model.compile(
+        optimizer=opt,
+        loss='binary_crossentropy',
+        metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()]
+    )
+
+    return model
+
+
+def build_model_feat(window_size, n_features):
+    num_transformer_blocks = 3
+    head_size = 64
+    num_heads = 8
+    ff_dim = 2
+    dropout = 0.1
+    mlp_units = [480, 256, 448]
+    mlp_dropout = 0.3
+
+    inputs = Input(shape=(window_size, n_features))
+    x = inputs
+    for _ in range(num_transformer_blocks):
+        x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
+
+    x = GlobalAveragePooling1D(data_format="channels_first")(x)
+    for dim in mlp_units:
+        x = Dense(dim, activation="relu")(x)
+        x = Dropout(mlp_dropout)(x)
+    outputs = Dense(1, activation="sigmoid")(x)
+
+    model = Model(inputs, outputs)
+
+    # Learning rate schedule
+    lr_schedule = ExponentialDecay(
+        initial_learning_rate=0.0028,
+        decay_steps=5000,
+        decay_rate=0.84)
 
     # Optimizer
     opt = Adam(learning_rate=lr_schedule)

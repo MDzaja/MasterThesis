@@ -30,19 +30,19 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 
     model_configs = {
         'cnn_lstm': {
-            'build_func': cnn_lstm_impl.build_model,
+            'build_func': cnn_lstm_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model,
             'epochs': 1000,
             'batch_size': 64,
             'patience': 100
         },
         'lstm': {
-            'build_func': lstm_impl.build_model,
+            'build_func': lstm_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model,
             'epochs': 1000,
             'batch_size': 64,
             'patience': 100
         },
         'transformer': {
-            'build_func': tr_impl.build_model,
+            'build_func': tr_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model,
             'epochs': 1000,
             'batch_size': 64,
             'patience': 100
@@ -77,7 +77,7 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
         test_eval = model.evaluate(_X_test, Y_test)
 
         # Save the model
-        model.save(f"test_logs/saved_models/{data_type}-{labeling}-{model_name}.keras")
+        model.save(f"test_logs/test2/saved_models/{data_type}-{labeling}-{model_name}.keras")
 
         # Store results
         results[model_name] = {
@@ -108,31 +108,7 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 
 
 if __name__ == '__main__':
-    ticker_symbol = 'GC=F'
-    start_date = '2000-01-01'
-    end_date = '2023-11-01'
-    raw_data = yf.download(ticker_symbol, start_date, end_date, interval='1d')
-    raw_data.index = raw_data.index.tz_localize(None)
-
-    features_df = pd.read_csv('../features/test_features.csv', index_col=0)
-
-    with open('../label_algorithms/labels_dict.pkl', 'rb') as file:
-        labels_dict = pickle.load(file)
-
-    # Ensure indices are in the same format
-    raw_data.index = pd.to_datetime(raw_data.index)
-    features_df.index = pd.to_datetime(features_df.index)
-    labels_dict = {k: pd.Series(v, index=pd.to_datetime(v.index)) for k, v in labels_dict.items()}
-
-    # Find the common indices
-    common_indices = raw_data.index.intersection(features_df.index)
-    for label_series in labels_dict.values():
-        common_indices = common_indices.intersection(label_series.index)
-
-    # Reindex raw_data, features_df, and each Series in labels_dict
-    raw_data = raw_data.reindex(common_indices)
-    features_df = features_df.reindex(common_indices)
-    labels_dict = {key: series.reindex(common_indices) for key, series in labels_dict.items()}
+    raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
 
     window_size = 60
     raw_X = model_utils.get_X(raw_data, window_size)
@@ -169,6 +145,6 @@ if __name__ == '__main__':
                                                    )
 
     # Write metrics to JSON file
-    results_filename = f"test_logs/metrics.json"
+    results_filename = f"test_logs/test2/metrics.json"
     with open(results_filename, 'w') as file:
         json.dump(metrics, file, indent=6)

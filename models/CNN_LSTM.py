@@ -16,27 +16,55 @@ import numpy as np
 
 import utils as model_utils
 
-
-def build_model(n_length, n_features):
+def build_model_raw(n_length, n_features):
 
     model = Sequential()
-    model.add(TimeDistributed(Conv1D(filters=128, kernel_size=3, activation='relu', padding='same'), input_shape=(None, n_length, n_features)))
-    model.add(TimeDistributed(Conv1D(filters=128, kernel_size=5, activation='relu', padding='same')))
-    model.add(TimeDistributed(Conv1D(filters=96, kernel_size=5, activation='relu')))
-    model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
+    model.add(TimeDistributed(Conv1D(filters=96, kernel_size=5, activation='relu'), input_shape=(None, n_length, n_features)))
+    model.add(TimeDistributed(Conv1D(filters=128, kernel_size=3, activation='relu')))
+    model.add(TimeDistributed(Conv1D(filters=64, kernel_size=3, activation='relu')))
+    model.add(TimeDistributed(MaxPooling1D(pool_size=3)))
     model.add(TimeDistributed(Dropout(0.4)))
     model.add(TimeDistributed(Flatten()))
     model.add(Bidirectional(LSTM(192, return_sequences=True)))
     model.add(Bidirectional(LSTM(160, return_sequences=True)))
-    model.add(Bidirectional(LSTM(384, return_sequences=False)))
-    #model.add(Dropout(0.5))
-    model.add(Dense(192, activation='relu'))
+    model.add(Bidirectional(LSTM(512, return_sequences=False)))
+    model.add(Dropout(0.2))
+    model.add(Dense(224, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0037,
-        decay_steps=7000,
-        decay_rate=0.84)
+        initial_learning_rate=0.001,
+        decay_steps=5000,
+        decay_rate=0.82)
+
+    opt = Adam(learning_rate=lr_schedule)
+
+    model.compile(optimizer=opt,
+                  loss='binary_crossentropy',
+                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
+
+    return model
+
+def build_model_feat(n_length, n_features):
+
+    model = Sequential()
+    model.add(TimeDistributed(Conv1D(filters=96, kernel_size=3, activation='relu'), input_shape=(None, n_length, n_features)))
+    model.add(TimeDistributed(Conv1D(filters=64, kernel_size=3, activation='relu')))
+    model.add(TimeDistributed(Conv1D(filters=64, kernel_size=5, activation='relu')))
+    model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
+    model.add(TimeDistributed(Dropout(0.2)))
+    model.add(TimeDistributed(Flatten()))
+    model.add(Bidirectional(LSTM(128, return_sequences=True)))
+    model.add(Bidirectional(LSTM(352, return_sequences=True)))
+    model.add(Bidirectional(LSTM(480, return_sequences=False)))
+    model.add(Dropout(0.4))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+
+    lr_schedule = ExponentialDecay(
+        initial_learning_rate=0.0123,
+        decay_steps=3000,
+        decay_rate=0.94)
 
     opt = Adam(learning_rate=lr_schedule)
 

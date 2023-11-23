@@ -17,25 +17,53 @@ import numpy as np
 import utils as model_utils
 
 
-def build_model(window_size, n_features):
+def build_model_raw(window_size, n_features):
     model = Sequential()
     model.add(Bidirectional(
-        LSTM(384,
+        LSTM(224,
              return_sequences=True,
              input_shape=(window_size, n_features)
              )
     ))
-    model.add(Bidirectional(LSTM(192, return_sequences=True)))
-    model.add(Bidirectional(LSTM(224, return_sequences=True)))
-    model.add(Bidirectional(LSTM(128, return_sequences=False)))
-    model.add(Dense(units=224, activation='relu'))
-    model.add(Dropout(rate=0.4))
+    model.add(Bidirectional(LSTM(64, return_sequences=True)))
+    model.add(Bidirectional(LSTM(416, return_sequences=True)))
+    model.add(Bidirectional(LSTM(480, return_sequences=False)))
+    model.add(Dense(units=192, activation='relu'))
+    model.add(Dropout(rate=0.1))
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0006,
-        decay_steps=8000,
-        decay_rate=0.84)
+        initial_learning_rate=0.0021,
+        decay_steps=3000,
+        decay_rate=0.98)
+
+    opt = Adam(learning_rate=lr_schedule)
+
+    model.compile(optimizer=opt,
+                  loss='binary_crossentropy',
+                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
+
+    return model
+
+def build_model_feat(window_size, n_features):
+    model = Sequential()
+    model.add(Bidirectional(
+        LSTM(288,
+             return_sequences=True,
+             input_shape=(window_size, n_features)
+             )
+    ))
+    model.add(Bidirectional(LSTM(288, return_sequences=True)))
+    model.add(Bidirectional(LSTM(32, return_sequences=True)))
+    model.add(Bidirectional(LSTM(288, return_sequences=False)))
+    model.add(Dense(units=256, activation='relu'))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(1, activation='sigmoid'))
+
+    lr_schedule = ExponentialDecay(
+        initial_learning_rate=0.0063,
+        decay_steps=9000,
+        decay_rate=0.91)
 
     opt = Adam(learning_rate=lr_schedule)
 
