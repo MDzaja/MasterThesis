@@ -10,7 +10,9 @@ import sys
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
+import matplotlib.pyplot as plt
 import json
+import seaborn as sns
 import pandas as pd
 import pickle
 
@@ -201,3 +203,63 @@ def convert_types(obj):
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
+
+
+def plot_acc_auc(file_path):
+    # Load the JSON data into a dictionary
+    with open(file_path, 'r') as file:
+        metrics_dict = json.load(file)
+
+    # Flatten the JSON data into a DataFrame directly
+    def flatten_data(data, path=None, accumulator=None):
+        if accumulator is None:
+            accumulator = []
+        if path is None:
+            path = []
+        
+        if isinstance(data, dict):
+            for key, value in data.items():
+                flatten_data(value, path + [key], accumulator)
+        else:
+            accumulator.append(path + [data])
+        return accumulator
+
+    flattened_data = flatten_data(metrics_dict)
+    columns = ['features_used', 'labeling_algorithm', 'model_name', 'data_name', 'metric_name', 'value']
+    metrics_df = pd.DataFrame(flattened_data, columns=columns)
+
+    # Select only accuracy and AUC metrics
+    metrics_df = metrics_df[metrics_df['metric_name'].isin(['accuracy', 'auc'])]
+
+    # Create 'lbl_model' before pivoting to avoid repeated operations
+    metrics_df['lbl_model'] = metrics_df['labeling_algorithm'] + ' - ' + metrics_df['model_name']
+
+    # Pivot the DataFrame to have 'accuracy' and 'auc' as columns
+    pivot_df = metrics_df.pivot_table(index=['features_used', 'labeling_algorithm', 'model_name', 'data_name', 'lbl_model'], 
+                                    columns='metric_name', values='value').reset_index()
+
+    # Rename the pivoted columns and join them
+    pivot_df.rename(columns={'accuracy': 'accuracy', 'auc': 'auc'}, inplace=True)
+
+    # Introduce jitter to the accuracy and auc values before plotting
+    pivot_df['accuracy'] = pivot_df['accuracy'] + np.random.uniform(-0.01, 0.01, size=len(pivot_df))
+    pivot_df['auc'] = pivot_df['auc'] + np.random.uniform(-0.01, 0.01, size=len(pivot_df))
+
+    # Define the layout of your subplots
+    n_rows, n_cols = 2, 3
+    f, axes = plt.subplots(n_rows, n_cols, figsize=(15, 10), sharex=True, sharey=True)
+
+    # Plot each group
+    for i, ((features, data_name), group) in enumerate(pivot_df.groupby(['features_used', 'data_name'])):
+        row_index = 0 if features == 'raw_data' else 1
+        col_index = ['train', 'validation', 'test'].index(data_name)
+        
+        ax = sns.scatterplot(data=group, x='accuracy', y='auc', hue='lbl_model', style='lbl_model', ax=axes[row_index, col_index])
+        ax.set_title(f'{features} - {data_name}')
+        ax.legend().set_visible(False)
+
+    # Create an external legend from the last plot
+    handles, labels = ax.get_legend_handles_labels()
+    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.05))
+
+    plt.show()
