@@ -228,29 +228,37 @@ def plot_acc_auc(file_path):
     columns = ['features_used', 'labeling_algorithm', 'model_name', 'data_name', 'metric_name', 'value']
     metrics_df = pd.DataFrame(flattened_data, columns=columns)
 
-    # Select only accuracy and AUC metrics
-    metrics_df = metrics_df[metrics_df['metric_name'].isin(['accuracy', 'auc'])]
+    # Filter for accuracy and AUC metrics separately
+    accuracy_df = metrics_df[metrics_df['metric_name'] == 'accuracy'].copy()
+    auc_df = metrics_df[metrics_df['metric_name'] == 'auc'].copy()
 
-    # Create 'lbl_model' before pivoting to avoid repeated operations
-    metrics_df['lbl_model'] = metrics_df['labeling_algorithm'] + ' - ' + metrics_df['model_name']
+    # Rename the 'value' column to match the metric they represent
+    accuracy_df.rename(columns={'value': 'accuracy'}, inplace=True)
+    auc_df.rename(columns={'value': 'auc'}, inplace=True)
 
-    # Pivot the DataFrame to have 'accuracy' and 'auc' as columns
-    pivot_df = metrics_df.pivot_table(index=['features_used', 'labeling_algorithm', 'model_name', 'data_name', 'lbl_model'], 
-                                    columns='metric_name', values='value').reset_index()
+    # Drop the 'metric_name' column as it is no longer needed
+    accuracy_df.drop('metric_name', axis=1, inplace=True)
+    auc_df.drop('metric_name', axis=1, inplace=True)
 
-    # Rename the pivoted columns and join them
-    pivot_df.rename(columns={'accuracy': 'accuracy', 'auc': 'auc'}, inplace=True)
+    # Merge the two DataFrames on the categorical columns
+    merged_df = pd.merge(
+        accuracy_df, 
+        auc_df, 
+        on=['features_used', 'labeling_algorithm', 'model_name', 'data_name'],
+        how='outer'
+    )
+    merged_df['lbl_model'] = merged_df['labeling_algorithm'] + ' - ' + merged_df['model_name']
 
-    # Introduce jitter to the accuracy and auc values before plotting
-    pivot_df['accuracy'] = pivot_df['accuracy'] + np.random.uniform(-0.01, 0.01, size=len(pivot_df))
-    pivot_df['auc'] = pivot_df['auc'] + np.random.uniform(-0.01, 0.01, size=len(pivot_df))
+    # Introduce jitter to the accuracy and auc values
+    merged_df['accuracy'] = merged_df['accuracy'] + np.random.uniform(-0.01, 0.01, size=len(merged_df))
+    merged_df['auc'] = merged_df['auc'] + np.random.uniform(-0.01, 0.01, size=len(merged_df))
 
     # Define the layout of your subplots
     n_rows, n_cols = 2, 3
-    f, axes = plt.subplots(n_rows, n_cols, figsize=(15, 10), sharex=True, sharey=True)
+    f, axes = plt.subplots(n_rows, n_cols, figsize=(15, 10), sharex=False, sharey=False)
 
     # Plot each group
-    for i, ((features, data_name), group) in enumerate(pivot_df.groupby(['features_used', 'data_name'])):
+    for i, ((features, data_name), group) in enumerate(merged_df.groupby(['features_used', 'data_name'])):
         row_index = 0 if features == 'raw_data' else 1
         col_index = ['train', 'validation', 'test'].index(data_name)
         
@@ -260,6 +268,9 @@ def plot_acc_auc(file_path):
 
     # Create an external legend from the last plot
     handles, labels = ax.get_legend_handles_labels()
-    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.05))
+    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1))
 
     plt.show()
+
+    merged_df = merged_df.drop(columns=['lbl_model'])	
+    return merged_df

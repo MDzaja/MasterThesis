@@ -110,6 +110,8 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 if __name__ == '__main__':
     raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
 
+    labels_dict = labels_dict['ct_three_state', 'ct_two_state', 'fixed_time_horizon', 'oracle']
+
     window_size = 60
     raw_X = model_utils.get_X(raw_data, window_size)
     feat_X = model_utils.get_X(features_df, window_size)
