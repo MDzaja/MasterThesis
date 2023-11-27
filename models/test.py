@@ -30,19 +30,19 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 
     model_configs = {
         'cnn_lstm': {
-            'build_func': cnn_lstm_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model,
+            'build_func': cnn_lstm_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model_feat,
             'epochs': 1000,
             'batch_size': 64,
             'patience': 100
         },
         'lstm': {
-            'build_func': lstm_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model,
+            'build_func': lstm_impl.build_model_raw if data_type == 'raw_data' else lstm_impl.build_model_feat,
             'epochs': 1000,
             'batch_size': 64,
             'patience': 100
         },
         'transformer': {
-            'build_func': tr_impl.build_model_raw if data_type == 'raw_data' else cnn_lstm_impl.build_model,
+            'build_func': tr_impl.build_model_raw if data_type == 'raw_data' else tr_impl.build_model_feat,
             'epochs': 1000,
             'batch_size': 64,
             'patience': 100
@@ -56,9 +56,8 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
         _X_val = X_val
         _X_test = X_test
         if model_name == 'cnn_lstm':
-            n_steps = int(_X_train.shape[1] / 6)
-            n_steps = n_steps if n_steps != 0 else 1
-            n_length = int(_X_train.shape[1] / n_steps)
+            n_steps = 6 if data_type == 'raw_data' else 3
+            n_length = 10
             n_features = _X_train.shape[-1]
             _X_train = _X_train.reshape((_X_train.shape[0], n_steps, n_length, n_features))
             _X_val = _X_val.reshape((_X_val.shape[0], n_steps, n_length, n_features))
@@ -110,20 +109,19 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 if __name__ == '__main__':
     raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
 
-    window_size = 60
-    raw_X = model_utils.get_X(raw_data, window_size)
-    feat_X = model_utils.get_X(features_df, window_size)
-    Y_dict = {key: model_utils.get_Y(series, window_size) for key, series in labels_dict.items()}
+    raw_X = model_utils.get_X(raw_data, 60)
+    feat_X = model_utils.get_X(features_df, 30)[30:]
+    raw_Y_dict = {key: model_utils.get_Y(series, 60) for key, series in labels_dict.items()}
+    feat_Y_dict = {key: model_utils.get_Y(series, 30)[30:] for key, series in labels_dict.items()}
 
     raw_X_train, raw_X_val, feat_X_train, feat_X_val = train_test_split(raw_X, feat_X, test_size=0.2, shuffle=False)
     raw_X_val, raw_X_test, feat_X_val, feat_X_test = train_test_split(raw_X_val, feat_X_val, test_size=0.25, shuffle=False)
 
-    Y_train_dict, Y_val_dict = {}, {}
-    for key in Y_dict.keys():
-        Y_train_dict[key], Y_val_dict[key] = train_test_split(Y_dict[key], test_size=0.2, shuffle=False)
-    Y_test_dict, feat_Y_test_dict = {}, {}
-    for key in Y_val_dict.keys():
-        Y_val_dict[key], Y_test_dict[key] = train_test_split(Y_val_dict[key], test_size=0.25, shuffle=False)
+    raw_Y_train_dict, raw_Y_val_dict, feat_Y_train_dict, feat_Y_val_dict = {}, {}, {}, {}
+    raw_Y_test_dict, feat_Y_test_dict = {}, {}
+    for key in labels_dict.keys():
+        raw_Y_train_dict[key], raw_Y_val_dict[key], feat_Y_train_dict[key], feat_Y_val_dict[key] = train_test_split(raw_Y_dict[key], feat_Y_dict[key], test_size=0.2, shuffle=False)
+        raw_Y_val_dict[key], raw_Y_test_dict[key], feat_Y_val_dict[key], feat_Y_test_dict[key] = train_test_split(raw_Y_val_dict[key], feat_Y_val_dict[key], test_size=0.25, shuffle=False)
 
     # Xs: raw_X_train, raw_X_val, raw_X_test, feat_X_train, feat_X_val, feat_X_test
     # Ys: raw_Y_train_dict, raw_Y_val_dict, raw_Y_test_dict, feat_Y_train_dict, feat_Y_val_dict, feat_Y_test_dict
@@ -134,14 +132,14 @@ if __name__ == '__main__':
     for labeling in labels_dict.keys():
         metrics[data_type][labeling] = test_models(labeling, data_type,
                                                    raw_X_train, raw_X_val, raw_X_test, 
-                                                   Y_train_dict[labeling], Y_val_dict[labeling], Y_test_dict[labeling]
+                                                   raw_Y_train_dict[labeling], raw_Y_val_dict[labeling], raw_Y_test_dict[labeling]
                                                    )
     data_type = 'features'
     metrics[data_type] = {}
     for labeling in labels_dict.keys():
         metrics[data_type][labeling] = test_models(labeling, data_type,
                                                    feat_X_train, feat_X_val, feat_X_test, 
-                                                   Y_train_dict[labeling], Y_val_dict[labeling], Y_test_dict[labeling]
+                                                   feat_Y_train_dict[labeling], feat_Y_val_dict[labeling], feat_Y_test_dict[labeling]
                                                    )
 
     # Write metrics to JSON file
