@@ -268,7 +268,7 @@ def plot_acc_auc(file_path):
 
     # Create an external legend from the last plot
     handles, labels = ax.get_legend_handles_labels()
-    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1))
+    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.05))
 
     plt.show()
 
