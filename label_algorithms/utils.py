@@ -131,7 +131,11 @@ def save_all_labels(prices: pd.Series) -> dict:
 
     tau = 0.00005
     H = 8
-    labels_dict['fixed_time_horizon'] = fth.binary_trend_labels(prices, tau=tau, H=H)
+    labels_dict['fixed_time_horizon-H=8'] = fth.binary_trend_labels(prices, tau=tau, H=H)
+
+    tau = 0
+    H = 1
+    labels_dict['fixed_time_horizon-H=1'] = fth.binary_trend_labels(prices, tau=tau, H=H)
 
     fee = 0.0004
     labels_dict['oracle'] = oracle.binary_trend_labels(prices, fee=fee)
