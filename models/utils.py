@@ -2,6 +2,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from keras_tuner import BayesianOptimization
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.model_selection import TimeSeriesSplit
 
 import sys
 import numpy as np
@@ -114,7 +115,7 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
 
 def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64):
     # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience),#roc auc val#TODO
+    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience),
 
     # Bayesian Optimization tuner
     tuner = BayesianOptimization(
@@ -130,6 +131,13 @@ def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val
     tuner.search(X_train, Y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, Y_val), callbacks=[early_stopping])
 
     # Analyze hyperparameters
+    save_hyperparameter_analysis(directory, tuner)
+
+    # Analyze overall trials
+    save_best_n_worst_trials(directory, tuner)
+
+
+def save_hyperparameter_analysis(directory, tuner):
     hp_stats = {}
     for trial_id, trial in tuner.oracle.trials.items():
         for hp, value in trial.hyperparameters.values.items():
@@ -154,7 +162,8 @@ def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val
     with open(f'{directory}/hp_analysis.json', 'w') as f:
         json.dump(hp_stats, f, default=convert_types, indent=4)
 
-    # Analyze overall trials
+
+def save_best_n_worst_trials(directory, tuner):
     non_null_trials = [t for t in tuner.oracle.trials.values() if t.score is not None]
     sorted_trials = sorted_trials = sorted(non_null_trials, key=lambda t: t.score)
     best_trial = sorted_trials[0]
@@ -187,12 +196,13 @@ def extract_trial_metrics(trial):
         if metric_history:
             # Assuming the last entry in the metric history contains the metric value
             last_metric_observation = metric_history[-1]
-            if hasattr(last_metric_observation, 'value'):
+            #if hasattr(last_metric_observation, 'value'):
                 # If the MetricObservation has a 'value' attribute
-                metrics[metric_name] = last_metric_observation.value
-            elif isinstance(last_metric_observation, dict) and 'value' in last_metric_observation:
+            #    metrics[metric_name] = last_metric_observation.value
+            #elif isinstance(last_metric_observation, dict) and 'value' in last_metric_observation:
                 # If the MetricObservation is a dictionary with a 'value' key
-                metrics[metric_name] = last_metric_observation['value']
+            # TODO remove if unnecessary
+            metrics[metric_name] = last_metric_observation['value']
     return metrics
 
 
@@ -285,3 +295,61 @@ def get_dafault_monitor_metric() -> str:
 
 def get_dafault_loss() -> str:
     return 'binary_crossentropy'
+
+
+def hyperparameter_optimization_cv(build_model_func, X, Y, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
+    # Compute class weights
+    classes = np.unique(Y)
+    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y.reshape(-1))
+    class_weight_dict = dict(zip(classes, class_weights))
+
+    # EarlyStopping callback
+    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience, restore_best_weights=True)
+    
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+
+    # Define the function to compute the cross-validated score
+    def crossval_score(hp):
+        val_scores = []
+        for train_index, val_index in tscv.split(X):
+            # Split the data
+            X_train, X_val = X[train_index], X[val_index]
+            Y_train, Y_val = Y[train_index], Y[val_index]
+
+            # Build the model
+            model = build_model_func(hp, X_train.shape[-2], X_train.shape[-1])
+
+            # Fit the model
+            model.fit(
+                X_train, Y_train,
+                validation_data=(X_val, Y_val),
+                epochs=epochs, batch_size=batch_size,
+                class_weight=class_weight_dict,
+                callbacks=[early_stopping],
+                verbose=0  # Turn off verbose to avoid too much logging
+            )
+
+            # Evaluate the model on the validation set
+            val_scores.append(model.evaluate(X_val, Y_val, verbose=0))
+
+        # Return the average of the validation scores
+        return np.mean(val_scores)
+    
+    # Bayesian Optimization tuner
+    tuner = BayesianOptimization(
+        crossval_score,
+        objective=get_dafault_monitor_metric(),
+        max_trials=max_trials,
+        executions_per_trial=executions_per_trial,
+        directory=directory,
+        project_name=project_name
+    )
+    # Run the Bayesian optimization
+    tuner.search_space_summary()
+    tuner.search()
+
+    # Analyze hyperparameters
+    save_hyperparameter_analysis(directory, tuner)
+
+    # Analyze overall trials
+    save_best_n_worst_trials(directory, tuner)
