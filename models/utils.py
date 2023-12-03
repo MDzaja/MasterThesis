@@ -112,12 +112,12 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
 
 def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64):
     # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor='val_loss', patience=early_stopping_patience)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=early_stopping_patience),#roc auc val#TODO
 
     # Bayesian Optimization tuner
     tuner = BayesianOptimization(
         lambda hp: build_model_func(hp, X_train.shape[-2], X_train.shape[-1]),
-        objective='val_loss',
+        objective='val_loss',#roc auc val
         max_trials=max_trials,
         executions_per_trial=executions_per_trial,
         directory=directory,
@@ -268,7 +268,7 @@ def plot_acc_auc(file_path):
 
     # Create an external legend from the last plot
     handles, labels = ax.get_legend_handles_labels()
-    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1))
+    f.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.05))
 
     plt.show()
 

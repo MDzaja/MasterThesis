@@ -1,5 +1,5 @@
 CT2; fee=0.0004; tau=0.00096
 CT3; fee=0.0004; tau=0.00096; window=13
-FTH; fee=0.0004; tau=0.00005; H=8
+FTH; fee=0.0004; tau=0.00005; H=8, proba stavit 1 i tau 0
 TB; fee=0.0004; pt=0.6; sl=3
 TB; fee=0.0004; pt=0.6; sl=1.3

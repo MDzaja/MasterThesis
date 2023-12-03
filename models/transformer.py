@@ -35,7 +35,7 @@ def build_model_raw(window_size, n_features):
     num_heads = 4
     ff_dim = 16
     dropout = 0.2
-    mlp_units = [160, 416]
+    mlp_units = [160]
     mlp_dropout = 0
 
     inputs = Input(shape=(window_size, n_features))
@@ -76,7 +76,7 @@ def build_model_feat(window_size, n_features):
     num_heads = 8
     ff_dim = 2
     dropout = 0.1
-    mlp_units = [480, 256, 448]
+    mlp_units = [480, 256]
     mlp_dropout = 0.3
 
     inputs = Input(shape=(window_size, n_features))
