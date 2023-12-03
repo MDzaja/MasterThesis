@@ -3,18 +3,11 @@ from tensorflow.keras.layers import Dense, Flatten, Dropout, LSTM, TimeDistribut
 from tensorflow.keras.layers import Conv1D, MaxPooling1D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
-from keras_tuner import BayesianOptimization
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.utils.class_weight import compute_class_weight
-
-import json
-import os
-import numpy as np
 
 import utils as model_utils
+
 
 def build_model_raw(n_length, n_features):
 
@@ -39,10 +32,11 @@ def build_model_raw(n_length, n_features):
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
-                  loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
+                  loss=model_utils.get_dafault_loss(),
+                  metrics=model_utils.get_default_metrics())
 
     return model
+
 
 def build_model_feat(n_length, n_features):
 
@@ -66,10 +60,11 @@ def build_model_feat(n_length, n_features):
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
-                  loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
+                  loss=model_utils.get_dafault_loss(),
+                  metrics=model_utils.get_default_metrics())
 
     return model
+
 
 def build_model_hp(hp, n_length, n_features):
     model = Sequential()
@@ -123,10 +118,11 @@ def build_model_hp(hp, n_length, n_features):
 
     # Compile the model
     model.compile(optimizer=opt,
-                  loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall()])
+                  loss=model_utils.get_dafault_loss(),
+                  metrics=model_utils.get_default_metrics())
 
     return model
+
 
 if __name__ == '__main__':
     #os.environ['CUDA_VISIBLE_DEVICES'] = '1'

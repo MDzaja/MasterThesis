@@ -1,9 +1,6 @@
-from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
 from keras_tuner import BayesianOptimization
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import TimeSeriesSplit
+from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from sklearn.utils.class_weight import compute_class_weight
 
 import sys
@@ -28,7 +25,7 @@ def get_ft_n_Y(window_size=60):
     fee = 0.0004
     labels = oracle.binary_trend_labels(close, fee=fee)
 
-    X = get_X(features_df, window_size)[:-1]
+    X = get_X(features_df, window_size)
     Y = get_Y(labels, window_size)
 
     return X, Y
@@ -64,21 +61,26 @@ def get_aligned_raw_feat_lbl():
     return raw_data, features_df, labels_dict
 
 
-def get_X(data, window_size):
+def get_X(data, window_size) -> pd.DataFrame:
     # Normalize features to range between -1 and 1
     scaler = MinMaxScaler(feature_range=(-1, 1))
     scaled_data = scaler.fit_transform(data.values)
 
-    # Create the 3D input data shape [samples, time_steps, features]
+    # Create the 3D input data shape [samples, time_steps, features] and retain dates
     X = []
+    dates = []
     for i in range(window_size, len(scaled_data)):
-        X.append(scaled_data[i-window_size:i, :])
+        X.append(scaled_data[i-window_size:i, :].flatten())
+        dates.append(data.index[i])
 
-    return np.array(X)
+    # Convert to a DataFrame
+    X_df = pd.DataFrame(X, index=dates)
+
+    return X_df
 
 
-def get_Y(labels: pd.Series, window_size):
-    return labels.shift(-1)[window_size-1:-1].values.astype(int).reshape(-1, 1)
+def get_Y(labels: pd.Series, window_size) -> pd.DataFrame:
+    return labels[window_size:]
 
 
 def get_dummy_X_n_Y(window_size=60):
@@ -92,7 +94,7 @@ def get_dummy_X_n_Y(window_size=60):
     fee = 0.0004
     labels = oracle.binary_trend_labels(data['Close'], fee=fee)
 
-    X = get_X(data, window_size)[:-1]
+    X = get_X(data, window_size)
     Y = get_Y(labels, window_size)
     
     return X, Y
@@ -103,7 +105,7 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
     class_weight_dict = dict(zip(classes, class_weights))
 
-    early_stopping = EarlyStopping(monitor='loss', patience=early_stopping_patience)
+    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience)
 
     model = build_model_func(X_train.shape[-2], X_train.shape[-1])
 
@@ -112,12 +114,12 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
 
 def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64):
     # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor='val_loss', patience=early_stopping_patience),#roc auc val#TODO
+    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience),#roc auc val#TODO
 
     # Bayesian Optimization tuner
     tuner = BayesianOptimization(
         lambda hp: build_model_func(hp, X_train.shape[-2], X_train.shape[-1]),
-        objective='val_loss',#roc auc val
+        objective=get_dafault_monitor_metric(),
         max_trials=max_trials,
         executions_per_trial=executions_per_trial,
         directory=directory,
@@ -274,3 +276,12 @@ def plot_acc_auc(file_path):
 
     merged_df = merged_df.drop(columns=['lbl_model'])	
     return merged_df
+
+def get_default_metrics() -> list:
+    [BinaryAccuracy(), Precision(), Recall(), AUC()]
+
+def get_dafault_monitor_metric() -> str:
+    return 'val_auc'
+
+def get_dafault_loss() -> str:
+    return 'binary_crossentropy'

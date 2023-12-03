@@ -1,27 +1,16 @@
-import sys
-import yfinance as yf
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-import pickle
-import matplotlib.pyplot as plt
 from sklearn.utils.class_weight import compute_class_weight
 import json
 import os
 
-# Importing keras from tensorflow
-from tensorflow.keras.models import Model, load_model, Sequential
-from tensorflow.keras.layers import Dense, Activation, LSTM, GRU, Dropout, Input
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.optimizers.schedules import ExponentialDecay
-
 
 import LSTM as lstm_impl
 import CNN_LSTM as cnn_lstm_impl
 import utils as model_utils
 import transformer as tr_impl
+
 
 def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_test, cnn_lstm=False, lstm=False, transformer=False):
     # Compute class weights
@@ -69,7 +58,7 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 
         # Build and train the model
         model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
-        early_stopping = EarlyStopping(monitor='val_loss', patience=config['patience'])
+        early_stopping = EarlyStopping(monitor=model_utils.get_dafault_monitor_metric(), patience=config['patience'])
         model.fit(_X_train, Y_train, epochs=config['epochs'], validation_data=(_X_val, Y_val), 
                   batch_size=config['batch_size'], class_weight=class_weight_dict, callbacks=[early_stopping])
 

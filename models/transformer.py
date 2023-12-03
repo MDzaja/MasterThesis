@@ -1,12 +1,9 @@
-from tensorflow import keras
 from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, MaxPooling1D, TimeDistributed, LSTM, Bidirectional, LayerNormalization, MultiHeadAttention, GlobalAveragePooling1D
+from tensorflow.keras.layers import Dense, Dropout, Conv1D, LayerNormalization, MultiHeadAttention, GlobalAveragePooling1D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 
 from sklearn.model_selection import train_test_split
-import json
 import os
 import numpy as np
 
@@ -63,8 +60,8 @@ def build_model_raw(window_size, n_features):
     # Compile the model
     model.compile(
         optimizer=opt,
-        loss='binary_crossentropy',
-        metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()]
+        loss=model_utils.get_dafault_loss(),
+        metrics=model_utils.get_default_metrics()
     )
 
     return model
@@ -104,8 +101,8 @@ def build_model_feat(window_size, n_features):
     # Compile the model
     model.compile(
         optimizer=opt,
-        loss='binary_crossentropy',
-        metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()]
+        loss=model_utils.get_dafault_loss(),
+        metrics=model_utils.get_default_metrics()
     )
 
     return model
@@ -155,8 +152,8 @@ def build_model_hp(hp, window_size, n_features):
     # Compile the model
     model.compile(
         optimizer=opt,
-        loss='binary_crossentropy',
-        metrics=[BinaryAccuracy(), Precision(), Recall()]
+        loss=model_utils.get_dafault_loss(),
+        metrics=model_utils.get_default_metrics()
     )
 
     return model

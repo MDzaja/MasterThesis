@@ -1,18 +1,11 @@
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Activation, Bidirectional
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
-from keras_tuner import BayesianOptimization
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.utils.class_weight import compute_class_weight
 
-import json
 import os
-import numpy as np
 
 import utils as model_utils
 
@@ -38,10 +31,11 @@ def build_model_raw(window_size, n_features):
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
-                  loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
+                  loss=model_utils.get_dafault_loss(),
+                  metrics=model_utils.get_default_metrics())
 
     return model
+
 
 def build_model_feat(window_size, n_features):
     model = Sequential()
@@ -64,8 +58,8 @@ def build_model_feat(window_size, n_features):
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
-                  loss='binary_crossentropy',
-                  metrics=[BinaryAccuracy(), Precision(), Recall(), AUC()])
+                  loss=model_utils.get_dafault_loss(),
+                  metrics=model_utils.get_default_metrics())
 
     return model
 
@@ -98,10 +92,11 @@ def build_model_hp(hp, window_size, n_features):
 
     # Compile the model
     model.compile(optimizer=opt,
-        loss='binary_crossentropy',
-        metrics=[BinaryAccuracy(), Precision(), Recall()])
+        loss=model_utils.get_dafault_loss(),
+        metrics=model_utils.get_default_metrics())
 
     return model
+
 
 def cv_train_model():
     X, Y = model_utils.get_dummy_X_n_Y()
