@@ -329,8 +329,11 @@ def hyperparameter_optimization_cv(build_model_func, X, Y, directory, project_na
                 verbose=0  # Turn off verbose to avoid too much logging
             )
 
+            val_results = model.evaluate(X_val, Y_val, verbose=0)
+            print(val_results)# TODO review
+
             # Evaluate the model on the validation set
-            val_scores.append(model.evaluate(X_val, Y_val, verbose=0))
+            val_scores.append(val_results)
 
         # Return the average of the validation scores
         return np.mean(val_scores)
