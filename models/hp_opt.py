@@ -19,29 +19,28 @@ if __name__ == '__main__':
     window_size = 30
     #raw_X = model_utils.get_X(raw_data, window_size)
     feat_X = model_utils.get_X(features_df, window_size)
-    Y = model_utils.get_Y(labels, window_size)
-    
-    X_train, X_val = train_test_split(feat_X, test_size=0.2, shuffle=False)
-    Y_train, Y_val = train_test_split(Y, test_size=0.2, shuffle=False)
+    Y = model_utils.get_Y(labels, window_size).values
+
+    X = feat_X
 
     # CNN-LSTM
     n_steps = 3
     n_length = 10
-    n_features = X_train.shape[2]
-    _X_train = X_train.reshape((X_train.shape[0], n_steps, n_length, n_features))
-    _X_val = X_val.reshape((X_val.shape[0], n_steps, n_length, n_features))
-    model_utils.hyperparameter_optimization(cnn_lstm.build_model_hp, _X_train, Y_train, _X_val, Y_val, 
-                                            'optimization_logs/cnn_lstm/test_feat', 'trials', 
-                                            max_trials=40, executions_per_trial=2,
-                                            early_stopping_patience=100, epochs=500, batch_size=64)
+    n_features = X.shape[2]
+    X = X.reshape((X.shape[0], n_steps, n_length, n_features))
+    model_utils.hyperparameter_optimization_cv(cnn_lstm.build_model_hp, X, Y, 
+                                            'optimization_logs/cnn_lstm/cv_feat', 'trials', 
+                                            max_trials=2, executions_per_trial=2,
+                                            early_stopping_patience=10, epochs=20, 
+                                            batch_size=64, n_splits=5)
     # LSTM
-    model_utils.hyperparameter_optimization(lstm.build_model_hp, X_train, Y_train, X_val, Y_val, 
-                                            'optimization_logs/lstm/test_feat', 'trials', 
-                                            max_trials=40, executions_per_trial=2,
-                                            early_stopping_patience=70, epochs=300, batch_size=64)
+    #model_utils.hyperparameter_optimization(lstm.build_model_hp, X_train, Y_train, X_val, Y_val, 
+    #                                        'optimization_logs/lstm/test_feat', 'trials', 
+    #                                        max_trials=40, executions_per_trial=2,
+    #                                        early_stopping_patience=70, epochs=300, batch_size=64)
     
     # Transformer
-    model_utils.hyperparameter_optimization(tf.build_model_hp, X_train, Y_train, X_val, Y_val, 
-                                            'optimization_logs/transformer/test_feat', 'trials', 
-                                            max_trials=40, executions_per_trial=2, 
-                                            early_stopping_patience=100, epochs=500, batch_size=64)
+    #model_utils.hyperparameter_optimization(tf.build_model_hp, X_train, Y_train, X_val, Y_val, 
+    #                                        'optimization_logs/transformer/test_feat', 'trials', 
+    #                                        max_trials=40, executions_per_trial=2, 
+    #                                        early_stopping_patience=100, epochs=500, batch_size=64)

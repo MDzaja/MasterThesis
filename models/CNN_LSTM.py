@@ -5,6 +5,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
+from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 
 import utils as model_utils
 import os

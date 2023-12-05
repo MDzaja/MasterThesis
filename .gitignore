@@ -4,5 +4,6 @@
 __pycache__/
 
 models/optimization_logs/**/trials/
+models/optimization_logs/**/temp_model.keras
 
 **/test_logs/**/saved_models/

@@ -1,5 +1,5 @@
-from tensorflow.keras.callbacks import EarlyStopping
-from keras_tuner import BayesianOptimization
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras_tuner import BayesianOptimization, Objective
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import TimeSeriesSplit
@@ -62,25 +62,22 @@ def get_aligned_raw_feat_lbl():
     return raw_data, features_df, labels_dict
 
 
-def get_X(data, window_size) -> pd.DataFrame:
+def get_X(data, window_size):
     # Normalize features to range between -1 and 1
     scaler = MinMaxScaler(feature_range=(-1, 1))
-    scaled_data = scaler.fit_transform(data.values)
+    scaled_data = scaler.fit_transform(data)
 
-    # Create the 3D input data shape [samples, time_steps, features] and retain dates
+    # Create the 3D input data shape [samples, time_steps, features]
     X = []
-    dates = []
+
     for i in range(window_size, len(scaled_data)):
-        X.append(scaled_data[i-window_size:i, :].flatten())
-        dates.append(data.index[i])
+        X.append(scaled_data[i - window_size:i, :])
 
-    # Convert to a DataFrame
-    X_df = pd.DataFrame(X, index=dates)
-
-    return X_df
+    # Convert to a 3D NumPy array
+    return np.array(X)
 
 
-def get_Y(labels: pd.Series, window_size) -> pd.DataFrame:
+def get_Y(labels: pd.Series, window_size) -> pd.Series:
     return labels[window_size:]
 
 
@@ -288,7 +285,10 @@ def plot_acc_auc(file_path):
     return merged_df
 
 def get_default_metrics() -> list:
-    [BinaryAccuracy(), Precision(), Recall(), AUC()]
+    return [BinaryAccuracy(name='binary_accuracy'),
+            Precision(name='precision'),
+            Recall(name='recall'),
+            AUC(name='auc')]
 
 def get_dafault_monitor_metric() -> str:
     return 'val_auc'
@@ -302,49 +302,66 @@ def hyperparameter_optimization_cv(build_model_func, X, Y, directory, project_na
     classes = np.unique(Y)
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y.reshape(-1))
     class_weight_dict = dict(zip(classes, class_weights))
-
-    # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience, restore_best_weights=True)
     
     tscv = TimeSeriesSplit(n_splits=n_splits)
 
     # Define the function to compute the cross-validated score
     def crossval_score(hp):
-        val_scores = []
+        val_aucs = []
         for train_index, val_index in tscv.split(X):
             # Split the data
             X_train, X_val = X[train_index], X[val_index]
             Y_train, Y_val = Y[train_index], Y[val_index]
 
+            # Re-initialize EarlyStopping callback for each fold
+            early_stopping = EarlyStopping(
+                monitor=get_dafault_monitor_metric(), 
+                patience=early_stopping_patience,
+                mode='max',
+                verbose=1
+            )
+
+            # Configure ModelCheckpoint
+            checkpoint = ModelCheckpoint(
+                filepath=f'{directory}/temp_model.keras',
+                monitor=get_dafault_monitor_metric(),
+                save_best_only=True,
+                save_weights_only=True,
+                mode='max',
+                verbose=1
+            )
+
             # Build the model
             model = build_model_func(hp, X_train.shape[-2], X_train.shape[-1])
-
             # Fit the model
             model.fit(
                 X_train, Y_train,
                 validation_data=(X_val, Y_val),
                 epochs=epochs, batch_size=batch_size,
                 class_weight=class_weight_dict,
-                callbacks=[early_stopping],
-                verbose=0  # Turn off verbose to avoid too much logging
+                callbacks=[early_stopping, checkpoint],
+                #verbose=0  # Turn off verbose to avoid too much logging
             )
 
-            train_results = model.evaluate(X_train, Y_train, verbose=0)
+            # Load the best weights
+            model.load_weights(f'{directory}/temp_model.keras')
+
+            train_results = model.evaluate(X_train, Y_train)
             print("train:", train_results)
 
-            val_results = model.evaluate(X_val, Y_val, verbose=0)
+            val_results = model.evaluate(X_val, Y_val)
             print("validation", val_results)# TODO review
 
             # Evaluate the model on the validation set
-            val_scores.append(val_results)
+            val_aucs.append(val_results[-1])
 
         # Return the average of the validation scores
-        return np.mean(val_scores)
+        return np.mean(val_aucs)
     
     # Bayesian Optimization tuner
     tuner = BayesianOptimization(
         crossval_score,
-        objective=get_dafault_monitor_metric(),
+        objective=Objective(get_dafault_monitor_metric(), direction="max"),
         max_trials=max_trials,
         executions_per_trial=executions_per_trial,
         directory=directory,
