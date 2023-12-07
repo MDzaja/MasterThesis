@@ -3,6 +3,10 @@ from keras_tuner import BayesianOptimization, Objective
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import TimeSeriesSplit
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import cross_val_score
+from functools import partial
+from skopt import gp_minimize
 
 import sys
 import numpy as np
@@ -296,83 +300,110 @@ def get_dafault_monitor_metric() -> str:
 def get_dafault_loss() -> str:
     return 'binary_crossentropy'
 
-
-def hyperparameter_optimization_cv(build_model_func, X, Y, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
-    # Compute class weights
-    classes = np.unique(Y)
-    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y.reshape(-1))
-    class_weight_dict = dict(zip(classes, class_weights))
+def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, initial_random_trials=10, 
+              early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
     
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    partial_objective = partial(objective_gp, X=X, Y=Y, build_model_gp=build_model_gp, epochs=epochs, 
+                                batch_size=batch_size, n_splits=n_splits, monitor_metric=get_dafault_monitor_metric(),
+                                early_stopping_patience=early_stopping_patience)
 
-    # Define the function to compute the cross-validated score
-    def crossval_score(hp):
-        val_aucs = []
-        for train_index, val_index in tscv.split(X):
-            # Split the data
-            X_train, X_val = X[train_index], X[val_index]
-            Y_train, Y_val = Y[train_index], Y[val_index]
+    result = gp_minimize(func=partial_objective, dimensions=search_space, 
+                         n_calls=trial_num, n_initial_points=initial_random_trials, n_jobs=-1, verbose=True)
 
-            # Re-initialize EarlyStopping callback for each fold
-            early_stopping = EarlyStopping(
-                monitor=get_dafault_monitor_metric(), 
-                patience=early_stopping_patience,
-                mode='max',
-                verbose=1
-            )
+    # Process results for hyperparameter analysis
+    hyperparam_analysis = process_hyperparams(result, search_space)
+    with open(f'{directory}/hp_analysis.json', 'w') as file:
+        json.dump(hyperparam_analysis, file, indent=4)
 
-            # Configure ModelCheckpoint
-            checkpoint = ModelCheckpoint(
-                filepath=f'{directory}/temp_model.keras',
-                monitor=get_dafault_monitor_metric(),
-                save_best_only=True,
-                save_weights_only=True,
-                mode='max',
-                verbose=1
-            )
+    # Process results for best and worst trials
+    overall_info = process_trials(result)
+    with open(f'{directory}/overall_info.json', 'w') as file:
+        json.dump(overall_info, file, indent=4)
 
-            # Build the model
-            model = build_model_func(hp, X_train.shape[-2], X_train.shape[-1])
-            # Fit the model
-            model.fit(
-                X_train, Y_train,
-                validation_data=(X_val, Y_val),
-                epochs=epochs, batch_size=batch_size,
-                class_weight=class_weight_dict,
-                callbacks=[early_stopping, checkpoint],
-                #verbose=0  # Turn off verbose to avoid too much logging
-            )
+    # Best hyperparameters
+    print("Best parameters: {}".format(result.x))
 
-            # Load the best weights
-            model.load_weights(f'{directory}/temp_model.keras')
 
-            train_results = model.evaluate(X_train, Y_train)
-            print("train:", train_results)
-
-            val_results = model.evaluate(X_val, Y_val)
-            print("validation", val_results)# TODO review
-
-            # Evaluate the model on the validation set
-            val_aucs.append(val_results[-1])
-
-        # Return the average of the validation scores
-        return np.mean(val_aucs)
-    
-    # Bayesian Optimization tuner
-    tuner = BayesianOptimization(
-        crossval_score,
-        objective=Objective(get_dafault_monitor_metric(), direction="max"),
-        max_trials=max_trials,
-        executions_per_trial=executions_per_trial,
-        directory=directory,
-        project_name=project_name
+def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, monitor_metric, early_stopping_patience):
+    early_stopping = EarlyStopping(
+        monitor=monitor_metric, 
+        patience=early_stopping_patience,
+        mode='max'
     )
-    # Run the Bayesian optimization
-    tuner.search_space_summary()
-    tuner.search()
+    model_fn = lambda: build_model_gp(params, X.shape[-2], X.shape[-1])
 
-    # Analyze hyperparameters
-    save_hyperparameter_analysis(directory, tuner)
+    score = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping)
+    return -score
 
-    # Analyze overall trials
-    save_best_n_worst_trials(directory, tuner)
+
+def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping):
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    scores = []
+
+    for train_index, val_index in tscv.split(X):
+        X_train, X_val = X[train_index], X[val_index]
+        Y_train, Y_val = Y[train_index], Y[val_index]
+
+        # Compute class weights
+        classes = np.unique(Y_train)
+        class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
+        class_weight_dict = dict(zip(classes, class_weights))
+
+        # Configure ModelCheckpoint
+        checkpoint = ModelCheckpoint(
+            filepath=f'tmp/tmp_model.keras',
+            monitor=get_dafault_monitor_metric(),
+            save_best_only=True,
+            save_weights_only=True,
+            mode='max',
+            verbose=1 #TODO
+        )
+
+        model = model_fn()
+        model.fit(
+            X_train, Y_train,
+            validation_data=(X_val, Y_val),
+            epochs=epochs, batch_size=batch_size,
+            class_weight=class_weight_dict,
+            callbacks=[early_stopping, checkpoint]
+        )
+
+        # Load the best weights
+        model.load_weights(f'tmp/tmp_model.keras')
+
+        val_scores = model.evaluate(X_val, Y_val)
+        scores.append(val_scores[-1])
+
+    return scores.mean()
+
+
+def process_hyperparams(result, search_space):
+    hp_stats = {}
+    for i, dimension in enumerate(search_space):
+        values = [x[i] for x in result.x_iters]
+        hp_stats[dimension.name] = {
+            'type': 'numerical' if isinstance(dimension, (int, float)) else 'categorical',
+            'average': np.mean(values),
+            'median': np.median(values),
+            'max': np.max(values),
+            'min': np.min(values),
+            '90th_percentile': np.percentile(values, 90)
+        }
+    return hp_stats
+
+
+def process_trials(result):
+    best_trial = {
+        'hyperparameters': result.x,
+        'score': -result.fun
+    }
+    worst_score = max(result.func_vals)
+    worst_trial_index = np.argmax(result.func_vals)
+    worst_trial = {
+        'hyperparameters': result.x_iters[worst_trial_index],
+        'score': -worst_score
+    }
+    return {
+        'best_trial': best_trial,
+        'worst_trial': worst_trial
+    }

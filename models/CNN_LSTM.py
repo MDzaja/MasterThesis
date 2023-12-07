@@ -6,6 +6,7 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
+from skopt.space import Integer, Real, Categorical
 
 import utils as model_utils
 import os
@@ -124,6 +125,80 @@ def build_model_hp(hp, n_length, n_features):
                   metrics=model_utils.get_default_metrics())
 
     return model
+
+def build_model_gp(params, n_length, n_features):
+    model = Sequential()
+
+    # First Conv1D layer (always included)
+    model.add(TimeDistributed(Conv1D(filters=params['conv_filters_0'], 
+                                     kernel_size=params['conv_kernel_size_0'], 
+                                     activation='relu'), 
+                              input_shape=(None, n_length, n_features)))
+
+    # Additional Conv1D layers (if present)
+    for i in range(1, params['num_conv_layers']):
+        model.add(TimeDistributed(Conv1D(filters=params[f'conv_filters_{i}'], 
+                                         kernel_size=params[f'conv_kernel_size_{i}', 3], 
+                                         activation='relu')))
+
+    # MaxPooling1D and Dropout after the Conv1D layers
+    model.add(TimeDistributed(MaxPooling1D(pool_size=params['conv_pool_size'])))
+    model.add(TimeDistributed(Dropout(rate=params['conv_dropout'])))
+
+    # Flatten the output
+    model.add(TimeDistributed(Flatten()))
+
+    # LSTM layers
+    for i in range(params['num_lstm_layers']):
+        model.add(Bidirectional(LSTM(units=params[f'lstm_units_{i}'], 
+                                     return_sequences=(i < params['num_lstm_layers'] - 1))))
+
+    # Dropout after LSTM layers
+    model.add(Dropout(rate=params['lstm_dropout']))
+
+    # Dense layer
+    model.add(Dense(units=params['dense_units'], activation='relu'))
+    
+    # Output layer
+    model.add(Dense(1, activation='sigmoid'))
+
+    # Learning rate schedule
+    lr_schedule = ExponentialDecay(initial_learning_rate=params['learning_rate'], 
+                                   decay_steps=params['decay_steps'], 
+                                   decay_rate=params['decay_rate'])
+
+    # Optimizer
+    opt = Adam(learning_rate=lr_schedule)
+
+    # Compile the model
+    model.compile(optimizer=opt, 
+                  loss=model_utils.get_default_loss(), 
+                  metrics=model_utils.get_default_metrics())
+
+    return model
+
+def define_search_space():
+    return [
+        Integer(32, 128, name='conv_filters_0'),
+        Categorical([3, 5], name='conv_kernel_size_0'),
+        Integer(1, 3, name='num_conv_layers'),
+        Categorical([2, 3], name='conv_pool_size'),
+        Real(0.0, 0.5, name='conv_dropout'),
+        Integer(1, 3, name='num_lstm_layers'),
+        Real(0.0, 0.5, name='lstm_dropout'),
+        Integer(32, 256, name='dense_units'),
+        Real(1e-4, 0.1, name='learning_rate', prior='log-uniform'),
+        Integer(1000, 10000, name='decay_steps'),
+        Real(0.8, 0.99, name='decay_rate'),
+        # Layer-specific hyperparameters
+        Integer(32, 128, name='conv_filters_1'),
+        Categorical([3, 5], name='conv_kernel_size_1'),
+        Integer(32, 128, name='conv_filters_2'),
+        Categorical([3, 5], name='conv_kernel_size_2'),
+        Integer(32, 512, name='lstm_units_0'),
+        Integer(32, 512, name='lstm_units_1'),
+        Integer(32, 512, name='lstm_units_2'),
+    ]
 
 
 if __name__ == '__main__':
