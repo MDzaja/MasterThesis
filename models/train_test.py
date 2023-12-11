@@ -58,7 +58,7 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 
         # Build and train the model
         model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
-        early_stopping = EarlyStopping(monitor=model_utils.get_dafault_monitor_metric(), patience=config['patience'])
+        early_stopping = EarlyStopping(monitor=model_utils.get_default_monitor_metric(), patience=config['patience'])
         model.fit(_X_train, Y_train, epochs=config['epochs'], validation_data=(_X_val, Y_val), 
                   batch_size=config['batch_size'], class_weight=class_weight_dict, callbacks=[early_stopping])
 

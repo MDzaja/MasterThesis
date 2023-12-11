@@ -3,7 +3,6 @@ from keras_tuner import BayesianOptimization, Objective
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import TimeSeriesSplit
-from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import cross_val_score
 from functools import partial
 from skopt import gp_minimize
@@ -17,6 +16,7 @@ import json
 import seaborn as sns
 import pandas as pd
 import pickle
+import os
 
 sys.path.append('../')
 from label_algorithms import oracle
@@ -107,7 +107,7 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
     class_weight_dict = dict(zip(classes, class_weights))
 
-    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience)
+    early_stopping = EarlyStopping(monitor=get_default_monitor_metric(), patience=early_stopping_patience)
 
     model = build_model_func(X_train.shape[-2], X_train.shape[-1])
 
@@ -116,12 +116,12 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
 
 def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64):
     # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor=get_dafault_monitor_metric(), patience=early_stopping_patience),
+    early_stopping = EarlyStopping(monitor=get_default_monitor_metric(), patience=early_stopping_patience),
 
     # Bayesian Optimization tuner
     tuner = BayesianOptimization(
         lambda hp: build_model_func(hp, X_train.shape[-2], X_train.shape[-1]),
-        objective=get_dafault_monitor_metric(),
+        objective=get_default_monitor_metric(),
         max_trials=max_trials,
         executions_per_trial=executions_per_trial,
         directory=directory,
@@ -294,31 +294,32 @@ def get_default_metrics() -> list:
             Recall(name='recall'),
             AUC(name='auc')]
 
-def get_dafault_monitor_metric() -> str:
+def get_default_monitor_metric() -> str:
     return 'val_auc'
 
-def get_dafault_loss() -> str:
+def get_default_loss() -> str:
     return 'binary_crossentropy'
 
 def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, initial_random_trials=10, 
               early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
     
     partial_objective = partial(objective_gp, X=X, Y=Y, build_model_gp=build_model_gp, epochs=epochs, 
-                                batch_size=batch_size, n_splits=n_splits, monitor_metric=get_dafault_monitor_metric(),
+                                batch_size=batch_size, n_splits=n_splits, monitor_metric=get_default_monitor_metric(),
                                 early_stopping_patience=early_stopping_patience)
 
+    np.int = np.int64
     result = gp_minimize(func=partial_objective, dimensions=search_space, 
                          n_calls=trial_num, n_initial_points=initial_random_trials, n_jobs=-1, verbose=True)
 
     # Process results for hyperparameter analysis
     hyperparam_analysis = process_hyperparams(result, search_space)
     with open(f'{directory}/hp_analysis.json', 'w') as file:
-        json.dump(hyperparam_analysis, file, indent=4)
+        json.dump(hyperparam_analysis, file, indent=4, default=convert_types)
 
     # Process results for best and worst trials
-    overall_info = process_trials(result)
+    overall_info = process_trials(result, search_space)
     with open(f'{directory}/overall_info.json', 'w') as file:
-        json.dump(overall_info, file, indent=4)
+        json.dump(overall_info, file, indent=4, default=convert_types)
 
     # Best hyperparameters
     print("Best parameters: {}".format(result.x))
@@ -351,12 +352,11 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
 
         # Configure ModelCheckpoint
         checkpoint = ModelCheckpoint(
-            filepath=f'tmp/tmp_model.keras',
-            monitor=get_dafault_monitor_metric(),
+            filepath='tmp/tmp_model.keras',
+            monitor=get_default_monitor_metric(),
             save_best_only=True,
             save_weights_only=True,
-            mode='max',
-            verbose=1 #TODO
+            mode='max'
         )
 
         model = model_fn()
@@ -369,12 +369,13 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
         )
 
         # Load the best weights
-        model.load_weights(f'tmp/tmp_model.keras')
+        model.load_weights('tmp/tmp_model.keras')
+        os.remove('tmp/tmp_model.keras')
 
         val_scores = model.evaluate(X_val, Y_val)
         scores.append(val_scores[-1])
 
-    return scores.mean()
+    return np.mean(val_scores)
 
 
 def process_hyperparams(result, search_space):
@@ -382,7 +383,6 @@ def process_hyperparams(result, search_space):
     for i, dimension in enumerate(search_space):
         values = [x[i] for x in result.x_iters]
         hp_stats[dimension.name] = {
-            'type': 'numerical' if isinstance(dimension, (int, float)) else 'categorical',
             'average': np.mean(values),
             'median': np.median(values),
             'max': np.max(values),
@@ -392,17 +392,25 @@ def process_hyperparams(result, search_space):
     return hp_stats
 
 
-def process_trials(result):
+def process_trials(result, search_space):
+    # Mapping hyperparameter names to values for the best trial
+    best_trial_params = {search_space[i].name: result.x[i] for i in range(len(search_space))}
     best_trial = {
-        'hyperparameters': result.x,
+        'hyperparameters': best_trial_params,
         'score': -result.fun
     }
+
+    # Finding the worst trial
     worst_score = max(result.func_vals)
     worst_trial_index = np.argmax(result.func_vals)
+    
+    # Mapping hyperparameter names to values for the worst trial
+    worst_trial_params = {search_space[i].name: result.x_iters[worst_trial_index][i] for i in range(len(search_space))}
     worst_trial = {
-        'hyperparameters': result.x_iters[worst_trial_index],
+        'hyperparameters': worst_trial_params,
         'score': -worst_score
     }
+
     return {
         'best_trial': best_trial,
         'worst_trial': worst_trial

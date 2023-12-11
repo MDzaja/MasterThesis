@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from skopt.space import Integer, Real, Categorical
+import tensorflow as tf
 
 import utils as model_utils
 import os
@@ -127,45 +128,54 @@ def build_model_hp(hp, n_length, n_features):
     return model
 
 def build_model_gp(params, n_length, n_features):
-    model = Sequential()
+    # Unpack parameters
+    conv_filters_0, conv_kernel_size_0, num_conv_layers, conv_pool_size, conv_dropout, \
+    num_lstm_layers, lstm_dropout, dense_units, learning_rate, decay_steps, decay_rate, \
+    conv_filters_1, conv_kernel_size_1, conv_filters_2, conv_kernel_size_2, \
+    lstm_units_0, lstm_units_1, lstm_units_2 = params
 
+    model = Sequential()
     # First Conv1D layer (always included)
-    model.add(TimeDistributed(Conv1D(filters=params['conv_filters_0'], 
-                                     kernel_size=params['conv_kernel_size_0'], 
+    model.add(TimeDistributed(Conv1D(filters=conv_filters_0, 
+                                     kernel_size=(conv_kernel_size_0,), 
                                      activation='relu'), 
                               input_shape=(None, n_length, n_features)))
 
     # Additional Conv1D layers (if present)
-    for i in range(1, params['num_conv_layers']):
-        model.add(TimeDistributed(Conv1D(filters=params[f'conv_filters_{i}'], 
-                                         kernel_size=params[f'conv_kernel_size_{i}', 3], 
-                                         activation='relu')))
+    for i in range(1, num_conv_layers):
+        model.add(TimeDistributed(Conv1D(filters=locals().get(f'conv_filters_{i}'), 
+                                         kernel_size=(locals().get(f'conv_kernel_size_{i}'),), 
+                                         activation='relu',
+                                         padding='same')))
 
     # MaxPooling1D and Dropout after the Conv1D layers
-    model.add(TimeDistributed(MaxPooling1D(pool_size=params['conv_pool_size'])))
-    model.add(TimeDistributed(Dropout(rate=params['conv_dropout'])))
+    model.add(TimeDistributed(MaxPooling1D(pool_size=(conv_pool_size,))))
+    model.add(TimeDistributed(Dropout(rate=conv_dropout)))
 
     # Flatten the output
     model.add(TimeDistributed(Flatten()))
 
     # LSTM layers
-    for i in range(params['num_lstm_layers']):
-        model.add(Bidirectional(LSTM(units=params[f'lstm_units_{i}'], 
-                                     return_sequences=(i < params['num_lstm_layers'] - 1))))
+    for i in range(num_lstm_layers):
+        lstm_units = locals().get(f'lstm_units_{i}')
+        return_sequences = i < num_lstm_layers - 1
+        return_sequences = True if return_sequences else False #TODO check why is this needed, it throws an error otherwise; Using a symbolic `tf.Tensor` as a Python `bool` is not allowed...
+        model.add(Bidirectional(LSTM(units=lstm_units, 
+                                     return_sequences=return_sequences)))
 
     # Dropout after LSTM layers
-    model.add(Dropout(rate=params['lstm_dropout']))
+    model.add(Dropout(rate=lstm_dropout))
 
     # Dense layer
-    model.add(Dense(units=params['dense_units'], activation='relu'))
+    model.add(Dense(units=dense_units, activation='relu'))
     
     # Output layer
     model.add(Dense(1, activation='sigmoid'))
 
     # Learning rate schedule
-    lr_schedule = ExponentialDecay(initial_learning_rate=params['learning_rate'], 
-                                   decay_steps=params['decay_steps'], 
-                                   decay_rate=params['decay_rate'])
+    lr_schedule = ExponentialDecay(initial_learning_rate=learning_rate, 
+                                   decay_steps=decay_steps, 
+                                   decay_rate=decay_rate)
 
     # Optimizer
     opt = Adam(learning_rate=lr_schedule)
