@@ -2,6 +2,7 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Dropout, Conv1D, LayerNormalization, MultiHeadAttention, GlobalAveragePooling1D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
+from skopt.space import Integer, Real, Categorical
 
 from sklearn.model_selection import train_test_split
 import os
@@ -157,6 +158,72 @@ def build_model_hp(hp, window_size, n_features):
     )
 
     return model
+
+
+def build_model_gp(params, window_size, n_features):
+    # Unpack parameters
+    num_transformer_blocks, head_size, num_heads, ff_dim, transformer_dropout, \
+    num_mlp_layers, mlp_units_0, mlp_dropout, \
+    learning_rate, decay_steps, decay_rate, \
+    mlp_units_1, mlp_units_2, mlp_units_3 = params
+
+    inputs = Input(shape=(window_size, n_features))
+    x = inputs
+
+    # Transformer blocks
+    for _ in range(num_transformer_blocks):
+        x = transformer_encoder(
+            x,
+            head_size=head_size,
+            num_heads=num_heads,
+            ff_dim=ff_dim,
+            dropout=transformer_dropout
+        )
+
+    # GlobalAveragePooling1D layer
+    x = GlobalAveragePooling1D(data_format="channels_first")(x)
+
+    # MLP layers
+    for i in range(0, num_mlp_layers):
+        mlp_units = locals().get(f'mlp_units_{i}')
+        x = Dense(mlp_units, activation="relu")(x)
+        x = Dropout(mlp_dropout)(x)
+
+    # Output layer
+    outputs = Dense(1, activation='sigmoid')(x)
+
+    model = Model(inputs=inputs, outputs=outputs)
+
+    # Learning rate schedule
+    lr_schedule = ExponentialDecay(initial_learning_rate=learning_rate, decay_steps=decay_steps, decay_rate=decay_rate)
+
+    # Optimizer
+    opt = Adam(learning_rate=lr_schedule)
+
+    # Compile the model
+    model.compile(optimizer=opt, loss=model_utils.get_default_loss(), metrics=model_utils.get_default_metrics())
+
+    return model
+
+
+def define_transformer_search_space():
+    return [
+        Integer(1, 3, name='num_transformer_blocks'),
+        Integer(32, 256, name='head_size'),
+        Categorical([2, 4, 8], name='num_heads'),
+        Integer(2, 64, name='ff_dim'),
+        Real(0.0, 0.5, name='transformer_dropout'),
+        Integer(1, 3, name='num_mlp_layers'),
+        Integer(32, 512, name='mlp_units_0'),
+        Real(0.0, 0.5, name='mlp_dropout'),
+        Real(1e-4, 0.1, name='learning_rate', prior='log-uniform'),
+        Integer(1000, 10000, name='decay_steps'),
+        Real(0.8, 0.99, name='decay_rate'),
+        # Layer-specific hyperparameters
+        Integer(32, 512, name='mlp_units_1'),
+        Integer(32, 512, name='mlp_units_2'),
+        Integer(32, 512, name='mlp_units_3')
+    ]
 
 
 if __name__ == '__main__':

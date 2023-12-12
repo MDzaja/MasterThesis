@@ -332,7 +332,7 @@ def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, mon
         mode='max'
     )
     model_fn = lambda: build_model_gp(params, X.shape[-2], X.shape[-1])
-
+    
     score = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping)
     return -score
 

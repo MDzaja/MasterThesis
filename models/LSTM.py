@@ -4,6 +4,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
+from skopt.space import Integer, Real, Categorical
 
 import os
 
@@ -96,6 +97,57 @@ def build_model_hp(hp, window_size, n_features):
         metrics=model_utils.get_default_metrics())
 
     return model
+
+
+def build_model_gp(params, window_size, n_features):
+    # Unpack parameters
+    lstm_units_0, num_lstm_layers, dense_units, dropout_rate_dense, \
+    learning_rate, decay_steps, decay_rate, \
+    lstm_units_1, lstm_units_2, lstm_units_3 = params
+
+    model = Sequential()
+
+    # First LSTM layer
+    return_sequences = True if num_lstm_layers > 1 else False
+    model.add(Bidirectional(LSTM(units=lstm_units_0, return_sequences=return_sequences, input_shape=(window_size, n_features))))
+
+    # Additional LSTM layers
+    for i in range(1, num_lstm_layers):
+        lstm_units = locals().get(f'lstm_units_{i}')
+        return_sequences = True if i < num_lstm_layers - 1 else False
+        model.add(Bidirectional(LSTM(units=lstm_units, return_sequences=return_sequences)))
+
+    # Dense and Dropout layers
+    model.add(Dense(units=dense_units, activation='relu'))
+    model.add(Dropout(rate=dropout_rate_dense))
+    model.add(Dense(1, activation='sigmoid'))
+
+    # Learning rate schedule
+    lr_schedule = ExponentialDecay(initial_learning_rate=learning_rate, decay_steps=decay_steps, decay_rate=decay_rate)
+
+    # Optimizer
+    opt = Adam(learning_rate=lr_schedule)
+
+    # Compile the model
+    model.compile(optimizer=opt, loss=model_utils.get_default_loss(), metrics=model_utils.get_default_metrics())
+
+    return model
+
+
+def define_search_space():
+    return [
+        Integer(32, 512, name='lstm_units_0'),
+        Integer(1, 3, name='num_lstm_layers'),
+        Integer(32, 256, name='dense_units'),
+        Real(0.0, 0.5, name='dropout_rate_dense'),
+        Real(1e-4, 0.1, name='learning_rate', prior='log-uniform'),
+        Integer(1000, 10000, name='decay_steps'),
+        Real(0.8, 0.99, name='decay_rate'),
+        # Layer-specific hyperparameters
+        Integer(32, 512, name='lstm_units_1'),
+        Integer(32, 512, name='lstm_units_2'),
+        Integer(32, 512, name='lstm_units_3')
+    ]
 
 
 def cv_train_model():
