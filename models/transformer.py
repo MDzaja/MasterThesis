@@ -206,7 +206,7 @@ def build_model_gp(params, window_size, n_features):
     return model
 
 
-def define_transformer_search_space():
+def define_search_space():
     return [
         Integer(1, 3, name='num_transformer_blocks'),
         Integer(32, 256, name='head_size'),

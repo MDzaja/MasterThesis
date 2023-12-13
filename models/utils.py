@@ -303,9 +303,10 @@ def get_default_loss() -> str:
 def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, initial_random_trials=10, 
               early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
     
+    metric_history = []
     partial_objective = partial(objective_gp, X=X, Y=Y, build_model_gp=build_model_gp, epochs=epochs, 
                                 batch_size=batch_size, n_splits=n_splits, monitor_metric=get_default_monitor_metric(),
-                                early_stopping_patience=early_stopping_patience)
+                                early_stopping_patience=early_stopping_patience, metric_history=metric_history)
 
     np.int = np.int64
     result = gp_minimize(func=partial_objective, dimensions=search_space, 
@@ -317,7 +318,7 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
         json.dump(hyperparam_analysis, file, indent=4, default=convert_types)
 
     # Process results for best and worst trials
-    overall_info = process_trials(result, search_space)
+    overall_info = process_trials(result, search_space, metric_history)
     with open(f'{directory}/overall_info.json', 'w') as file:
         json.dump(overall_info, file, indent=4, default=convert_types)
 
@@ -325,7 +326,7 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
     print("Best parameters: {}".format(result.x))
 
 
-def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, monitor_metric, early_stopping_patience):
+def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, monitor_metric, early_stopping_patience, metric_history):
     early_stopping = EarlyStopping(
         monitor=monitor_metric, 
         patience=early_stopping_patience,
@@ -333,13 +334,14 @@ def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, mon
     )
     model_fn = lambda: build_model_gp(params, X.shape[-2], X.shape[-1])
     
-    score = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping)
-    return -score
+    metrics = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping)
+    metric_history.append(metrics)
+    return -metrics[get_default_monitor_metric()]
 
 
 def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping):
     tscv = TimeSeriesSplit(n_splits=n_splits)
-    scores = []
+    all_metrics = {}
 
     for train_index, val_index in tscv.split(X):
         X_train, X_val = X[train_index], X[val_index]
@@ -372,10 +374,18 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
         model.load_weights('tmp/tmp_model.keras')
         os.remove('tmp/tmp_model.keras')
 
-        val_scores = model.evaluate(X_val, Y_val)
-        scores.append(val_scores[-1])
+        # Evaluate on training and validation data
+        train_metrics = model.evaluate(X_train, Y_train, verbose=0)
+        val_metrics = model.evaluate(X_val, Y_val, verbose=0)
 
-    return np.mean(val_scores)
+        # Update the all_metrics dictionary
+        for i, metric_name in enumerate(model.metrics_names):
+            all_metrics.setdefault(f'train_{metric_name}', []).append(train_metrics[i])
+            all_metrics.setdefault(f'val_{metric_name}', []).append(val_metrics[i])
+
+    # Calculate mean metrics
+    mean_metrics = {metric: np.mean(values) for metric, values in all_metrics.items()}
+    return mean_metrics
 
 
 def process_hyperparams(result, search_space):
@@ -392,23 +402,28 @@ def process_hyperparams(result, search_space):
     return hp_stats
 
 
-def process_trials(result, search_space):
-    # Mapping hyperparameter names to values for the best trial
+def process_trials(result, search_space, metric_history):
+    # Finding indices of the best and worst trials
+    best_trial_index = np.argmin(result.func_vals)
+    worst_trial_index = np.argmax(result.func_vals)
+
+    # Metrics for the best trial
+    best_trial_metrics = metric_history[best_trial_index]
     best_trial_params = {search_space[i].name: result.x[i] for i in range(len(search_space))}
     best_trial = {
         'hyperparameters': best_trial_params,
-        'score': -result.fun
+        'score': -result.fun,
+        'metrics': best_trial_metrics
     }
 
-    # Finding the worst trial
-    worst_score = max(result.func_vals)
-    worst_trial_index = np.argmax(result.func_vals)
-    
-    # Mapping hyperparameter names to values for the worst trial
+    # Metrics for the worst trial
+    worst_score = result.func_vals[worst_trial_index]
+    worst_trial_metrics = metric_history[worst_trial_index]
     worst_trial_params = {search_space[i].name: result.x_iters[worst_trial_index][i] for i in range(len(search_space))}
     worst_trial = {
         'hyperparameters': worst_trial_params,
-        'score': -worst_score
+        'score': -worst_score,
+        'metrics': worst_trial_metrics
     }
 
     return {
