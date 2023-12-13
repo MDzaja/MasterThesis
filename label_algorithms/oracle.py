@@ -34,4 +34,5 @@ def binary_trend_labels(prices: pd.Series, fee: float=0) -> pd.Series:
         if y[t] != y[t+1] and y[t] == y[t-1]:
             y[t] = 1 - y[t]
 
-    return pd.Series(y, index=prices.index)
+    y = pd.Series(y, index=prices.index).dropna()
+    return y

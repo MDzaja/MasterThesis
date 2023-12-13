@@ -30,7 +30,7 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.S
     ax3.plot(union_index, labels_, color='orange', linestyle='-', marker='o', label='Trend labels')
     ax3.set_ylabel('Label', color='orange')
     ax3.tick_params(axis='y', labelcolor='orange')
-    ax3.set_yticks([1, 0, -1])
+    ax3.set_yticks([1, 0])
 
     # Create the second axis for weights
     ax2 = ax1.twinx()

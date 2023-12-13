@@ -6,6 +6,7 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.model_selection import cross_val_score
 from functools import partial
 from skopt import gp_minimize
+from skopt.callbacks import Callback
 
 import sys
 import numpy as np
@@ -306,11 +307,13 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
     metric_history = []
     partial_objective = partial(objective_gp, X=X, Y=Y, build_model_gp=build_model_gp, epochs=epochs, 
                                 batch_size=batch_size, n_splits=n_splits, monitor_metric=get_default_monitor_metric(),
-                                early_stopping_patience=early_stopping_patience, metric_history=metric_history)
+                                early_stopping_patience=early_stopping_patience, metric_history=metric_history, directory=directory)
 
+    tracker = ProgressTracker(f'{directory}/progress.txt')
     np.int = np.int64
-    result = gp_minimize(func=partial_objective, dimensions=search_space, 
-                         n_calls=trial_num, n_initial_points=initial_random_trials, n_jobs=-1, verbose=True)
+    result = gp_minimize(func=partial_objective, dimensions=search_space,
+                         n_calls=trial_num, n_initial_points=initial_random_trials,
+                         callback=[tracker], verbose=True)
 
     # Process results for hyperparameter analysis
     hyperparam_analysis = process_hyperparams(result, search_space)
@@ -322,11 +325,8 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
     with open(f'{directory}/overall_info.json', 'w') as file:
         json.dump(overall_info, file, indent=4, default=convert_types)
 
-    # Best hyperparameters
-    print("Best parameters: {}".format(result.x))
 
-
-def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, monitor_metric, early_stopping_patience, metric_history):
+def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, monitor_metric, early_stopping_patience, metric_history, directory):
     early_stopping = EarlyStopping(
         monitor=monitor_metric, 
         patience=early_stopping_patience,
@@ -334,12 +334,12 @@ def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, mon
     )
     model_fn = lambda: build_model_gp(params, X.shape[-2], X.shape[-1])
     
-    metrics = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping)
+    metrics = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping, directory)
     metric_history.append(metrics)
     return -metrics[get_default_monitor_metric()]
 
 
-def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping):
+def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping, directory):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
 
@@ -354,7 +354,7 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
 
         # Configure ModelCheckpoint
         checkpoint = ModelCheckpoint(
-            filepath='tmp/tmp_model.keras',
+            filepath=f'{directory}/tmp_model.keras',
             monitor=get_default_monitor_metric(),
             save_best_only=True,
             save_weights_only=True,
@@ -367,12 +367,13 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
             validation_data=(X_val, Y_val),
             epochs=epochs, batch_size=batch_size,
             class_weight=class_weight_dict,
-            callbacks=[early_stopping, checkpoint]
+            callbacks=[early_stopping, checkpoint],
+            verbose=1
         )
 
         # Load the best weights
-        model.load_weights('tmp/tmp_model.keras')
-        os.remove('tmp/tmp_model.keras')
+        model.load_weights(f'{directory}/tmp_model.keras')
+        os.remove(f'{directory}/tmp_model.keras')
 
         # Evaluate on training and validation data
         train_metrics = model.evaluate(X_train, Y_train, verbose=0)
@@ -430,3 +431,14 @@ def process_trials(result, search_space, metric_history):
         'best_trial': best_trial,
         'worst_trial': worst_trial
     }
+
+class ProgressTracker(Callback):
+    def __init__(self, log_file):
+        self.log_file = log_file
+        self.trial = 1
+
+    def __call__(self, res):
+        with open(self.log_file, 'a') as f:
+            f.write(f"Trial {self.trial}: Best score = {res.fun}\n")
+            # You can also log other details from the `res` object
+        self.trial += 1

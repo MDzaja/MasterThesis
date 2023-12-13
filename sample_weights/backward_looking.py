@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def get_weights(prices: pd.Series, labels: pd.Series) -> pd.Series:
+def old_get_weights(prices: pd.Series, labels: pd.Series) -> pd.Series:
     # filter out prices that are not in labels
     prices = prices[prices.index.isin(labels.index)]
 
@@ -26,6 +26,20 @@ def get_weights(prices: pd.Series, labels: pd.Series) -> pd.Series:
         prev_i = i
 
     # Scale the weights to sum to weights.shape[0]
+    weights = weights / weights.sum() * weights.shape[0]
+
+    return weights
+
+def get_weights(prices: pd.Series, labels: pd.Series) -> pd.Series:
+    prices = prices[prices.index.isin(labels.index)]
+    weights = pd.Series(np.NaN, index=labels.index)
+    trend_start_i = labels.index[0]
+
+    for i, label in enumerate(labels):
+        if label != labels[trend_start_i]:
+            trend_start_i = i
+        weights[i] = abs(prices[i] / prices[trend_start_i] - 1)
+
     weights = weights / weights.sum() * weights.shape[0]
 
     return weights

@@ -11,7 +11,7 @@ import utils as model_utils
 import os
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    #os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     
     raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
     labels = labels_dict['oracle']
@@ -24,24 +24,24 @@ if __name__ == '__main__':
     X = feat_X
 
     # CNN-LSTM
-    n_steps = 3
-    n_length = 10
-    n_features = X.shape[2]
-    X = X.reshape((X.shape[0], n_steps, n_length, n_features))
-    model_utils.hp_opt_cv(cnn_lstm.build_model_gp, 
-                        cnn_lstm.define_search_space(), X, Y, 
-                        'optimization_logs/cnn_lstm/cv_feat_oracle', 
-                        trial_num=200, initial_random_trials=20,
-                        early_stopping_patience=50, epochs=500, 
-                        batch_size=64, n_splits=10)
+    # n_steps = 3
+    # n_length = 10
+    # n_features = X.shape[2]
+    # X = X.reshape((X.shape[0], n_steps, n_length, n_features))
+    # model_utils.hp_opt_cv(cnn_lstm.build_model_gp, 
+    #                     cnn_lstm.define_search_space(), X, Y, 
+    #                     'optimization_logs/cnn_lstm/cv_feat_oracle', 
+    #                     trial_num=200, initial_random_trials=20,
+    #                     early_stopping_patience=50, epochs=500, 
+    #                     batch_size=64, n_splits=10)
     
     # LSTM
-    #model_utils.hp_opt_cv(lstm.build_model_gp,
-    #                    lstm.define_search_space(), X, Y,
-    #                    'optimization_logs/lstm/cv_feat', 
-    #                    trial_num=200, initial_random_trials=20,
-    #                    early_stopping_patience=50, epochs=500,
-    #                    batch_size=64, n_splits=10)
+    model_utils.hp_opt_cv(lstm.build_model_gp,
+                       lstm.define_search_space(), X, Y,
+                       'optimization_logs/lstm/cv_feat_oracle', 
+                       trial_num=200, initial_random_trials=20,
+                       early_stopping_patience=50, epochs=500,
+                       batch_size=64, n_splits=10)
     
     # Transformer
     #model_utils.hp_opt_cv(tf.build_model_gp,
