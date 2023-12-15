@@ -99,8 +99,7 @@ def worker(binary_trend_labels: callable, prices: pd.Series, params_subset: list
     return (max_return_thread, best_params_thread)
 
 def compute_return(prices: pd.Series, labels: pd.Series, fee: float=0) -> float:
-    if len(prices) != len(labels):
-        raise ValueError("The length of prices and labels must be the same.")
+    prices = prices[prices.index.isin(labels.index)]
 
     cumulative_return = 1.0
     i = 0

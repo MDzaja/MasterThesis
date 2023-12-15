@@ -6,7 +6,12 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.model_selection import cross_val_score
 from functools import partial
 from skopt import gp_minimize
-from skopt.callbacks import Callback
+from skopt.callbacks import CheckpointSaver, VerboseCallback
+from skopt import load
+from keras import backend as K
+import gc
+from memory_profiler import profile
+import tensorflow as tf
 
 import sys
 import numpy as np
@@ -301,6 +306,7 @@ def get_default_monitor_metric() -> str:
 def get_default_loss() -> str:
     return 'binary_crossentropy'
 
+@profile
 def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, initial_random_trials=10, 
               early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
     
@@ -309,11 +315,26 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
                                 batch_size=batch_size, n_splits=n_splits, monitor_metric=get_default_monitor_metric(),
                                 early_stopping_patience=early_stopping_patience, metric_history=metric_history, directory=directory)
 
-    tracker = ProgressTracker(f'{directory}/progress.txt')
+    # Load previous state if it exists
+    checkpoint_path  = f'{directory}/optimization_state.pkl'
+    checkpoint_saver  = CheckpointSaver(checkpoint_path)
+    try:
+        res = load(checkpoint_path)
+        x0 = res.x_iters
+        y0 = res.func_vals
+    except FileNotFoundError:
+        x0 = y0 = None
+
+    # Create a ProgressTracker callback
+    tracker = ProgressTracker(f'{directory}/progress.txt',
+                              n_total=trial_num,
+                              n_init=len(x0) if x0 is not None else 0,
+                              n_random=initial_random_trials)
+
     np.int = np.int64
     result = gp_minimize(func=partial_objective, dimensions=search_space,
                          n_calls=trial_num, n_initial_points=initial_random_trials,
-                         callback=[tracker], verbose=True)
+                         x0=x0, y0=y0, callback=[tracker, checkpoint_saver], verbose=True)
 
     # Process results for hyperparameter analysis
     hyperparam_analysis = process_hyperparams(result, search_space)
@@ -339,6 +360,7 @@ def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, mon
     return -metrics[get_default_monitor_metric()]
 
 
+@profile
 def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping, directory):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
@@ -346,6 +368,8 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
     for train_index, val_index in tscv.split(X):
         X_train, X_val = X[train_index], X[val_index]
         Y_train, Y_val = Y[train_index], Y[val_index]
+        train_dataset = tf.data.Dataset.from_tensor_slices((X_train, Y_train)).batch(batch_size)
+        val_dataset = tf.data.Dataset.from_tensor_slices((X_val, Y_val)).batch(batch_size)
 
         # Compute class weights
         classes = np.unique(Y_train)
@@ -363,28 +387,33 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
 
         model = model_fn()
         model.fit(
-            X_train, Y_train,
-            validation_data=(X_val, Y_val),
-            epochs=epochs, batch_size=batch_size,
+            train_dataset,
+            validation_data=val_dataset,
+            epochs=epochs,
             class_weight=class_weight_dict,
             callbacks=[early_stopping, checkpoint],
-            verbose=1
+            verbose=0
         )
 
-        # Load the best weights
+        # Load the best weights and evaluate the model
         model.load_weights(f'{directory}/tmp_model.keras')
-        os.remove(f'{directory}/tmp_model.keras')
-
-        # Evaluate on training and validation data
         train_metrics = model.evaluate(X_train, Y_train, verbose=0)
         val_metrics = model.evaluate(X_val, Y_val, verbose=0)
 
-        # Update the all_metrics dictionary
+        # Update the metrics dictionary
         for i, metric_name in enumerate(model.metrics_names):
             all_metrics.setdefault(f'train_{metric_name}', []).append(train_metrics[i])
             all_metrics.setdefault(f'val_{metric_name}', []).append(val_metrics[i])
 
-    # Calculate mean metrics
+        # Clear the model and Keras session to free memory
+        del model
+        K.clear_session()
+        gc.collect()
+
+        # Remove the temporary model file
+        os.remove(f'{directory}/tmp_model.keras')
+
+    # Calculate and return mean metrics
     mean_metrics = {metric: np.mean(values) for metric, values in all_metrics.items()}
     return mean_metrics
 
@@ -432,13 +461,17 @@ def process_trials(result, search_space, metric_history):
         'worst_trial': worst_trial
     }
 
-class ProgressTracker(Callback):
-    def __init__(self, log_file):
-        self.log_file = log_file
-        self.trial = 1
 
-    def __call__(self, res):
-        with open(self.log_file, 'a') as f:
-            f.write(f"Trial {self.trial}: Best score = {res.fun}\n")
-            # You can also log other details from the `res` object
-        self.trial += 1
+class ProgressTracker(VerboseCallback):
+    def __init__(self, log_file, n_total, n_init=0, n_random=0):
+        super(ProgressTracker, self).__init__(n_total=n_total, n_init=n_init, n_random=n_random)
+        self.log_file = log_file
+
+    def __call__(self, result):
+        # First call the base class's __call__, which increments the iteration number and prints to console
+        super(ProgressTracker, self).__call__(result)
+        # Then, add your custom file logging
+        with open(self.log_file, 'a') as file:
+            current_trial = len(result.func_vals)
+            best_score = result.fun
+            file.write(f"Trial {current_trial} finished: Best score = {best_score}\n")

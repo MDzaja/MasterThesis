@@ -61,7 +61,7 @@ def build_model_raw(window_size, n_features):
     # Compile the model
     model.compile(
         optimizer=opt,
-        loss=model_utils.get_dafault_loss(),
+        loss=model_utils.get_default_loss(),
         metrics=model_utils.get_default_metrics()
     )
 
@@ -102,7 +102,7 @@ def build_model_feat(window_size, n_features):
     # Compile the model
     model.compile(
         optimizer=opt,
-        loss=model_utils.get_dafault_loss(),
+        loss=model_utils.get_default_loss(),
         metrics=model_utils.get_default_metrics()
     )
 
@@ -153,7 +153,7 @@ def build_model_hp(hp, window_size, n_features):
     # Compile the model
     model.compile(
         optimizer=opt,
-        loss=model_utils.get_dafault_loss(),
+        loss=model_utils.get_default_loss(),
         metrics=model_utils.get_default_metrics()
     )
 

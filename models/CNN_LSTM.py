@@ -36,7 +36,7 @@ def build_model_raw(n_length, n_features):
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
-                  loss=model_utils.get_dafault_loss(),
+                  loss=model_utils.get_default_loss(),
                   metrics=model_utils.get_default_metrics())
 
     return model
@@ -64,7 +64,7 @@ def build_model_feat(n_length, n_features):
     opt = Adam(learning_rate=lr_schedule)
 
     model.compile(optimizer=opt,
-                  loss=model_utils.get_dafault_loss(),
+                  loss=model_utils.get_default_loss(),
                   metrics=model_utils.get_default_metrics())
 
     return model
@@ -122,7 +122,7 @@ def build_model_hp(hp, n_length, n_features):
 
     # Compile the model
     model.compile(optimizer=opt,
-                  loss=model_utils.get_dafault_loss(),
+                  loss=model_utils.get_default_loss(),
                   metrics=model_utils.get_default_metrics())
 
     return model

@@ -99,7 +99,7 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    #os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
 
@@ -120,33 +120,63 @@ if __name__ == '__main__':
     # Xs: raw_X_train, raw_X_val, raw_X_test, feat_X_train, feat_X_val, feat_X_test
     # Ys: raw_Y_train_dict, raw_Y_val_dict, raw_Y_test_dict, feat_Y_train_dict, feat_Y_val_dict, feat_Y_test_dict
 
-    metrics = {}
-    # Raw data
-    data_type = 'raw_data'
-    metrics[data_type] = {}
-    for labeling in ['ct_three_state', 'ct_two_state', 'fixed_time_horizon', 'oracle']:
-        cnn_lstm = True if labeling == 'ct_three_state' else False
-        lstm = True if labeling == 'fixed_time_horizon' else False
-        transformer = True
-        metrics[data_type][labeling] = test_models(labeling, data_type,
-                                                   raw_X_train, raw_X_val, raw_X_test, 
-                                                   raw_Y_train_dict[labeling], raw_Y_val_dict[labeling], raw_Y_test_dict[labeling],
-                                                   cnn_lstm=cnn_lstm, lstm=lstm, transformer=transformer
-                                                   )
-    # Features
-    data_type = 'features'
-    metrics[data_type] = {}
-    for labeling in ['ct_three_state', 'ct_two_state', 'fixed_time_horizon', 'oracle']:
-        cnn_lstm = True if labeling == 'fixed_time_horizon' else False
-        lstm = True if labeling == 'fixed_time_horizon' else False
-        transformer = True
-        metrics[data_type][labeling] = test_models(labeling, data_type,
-                                                   feat_X_train, feat_X_val, feat_X_test, 
-                                                   feat_Y_train_dict[labeling], feat_Y_val_dict[labeling], feat_Y_test_dict[labeling],
-                                                   cnn_lstm=cnn_lstm, lstm=lstm, transformer=transformer
-                                                   )
+    #########################################################
 
-    # Write metrics to JSON file
-    results_filename = f"test_logs/test3/metrics.json"
-    with open(results_filename, 'w') as file:
-        json.dump(metrics, file, indent=6)
+    labeling = 'triple_barrier'
+    X_train, X_val, X_test = raw_X_train, raw_X_val, raw_X_test
+    Y_train, Y_val, Y_test = raw_Y_train_dict[labeling], raw_Y_val_dict[labeling], raw_Y_test_dict[labeling]
+
+    print(Y_train.shape)
+    print("Y_train value counts:")
+    print(Y_train.value_counts())
+
+    early_stopping = EarlyStopping(monitor=model_utils.get_default_monitor_metric(), patience=20)
+
+    classes = np.unique(Y_train)
+    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.values.flatten())
+    class_weight_dict = dict(zip(classes, class_weights))
+
+    model = lstm_impl.build_model_raw(X_train.shape[-2], X_train.shape[-1])
+    model.fit(X_train, Y_train, epochs=200, validation_data=(X_val, Y_val), 
+              batch_size=64, class_weight=class_weight_dict, callbacks=[early_stopping])
+    
+    train_eval = model.evaluate(X_train, Y_train)
+    val_eval = model.evaluate(X_val, Y_val)
+    test_eval = model.evaluate(X_test, Y_test)
+
+    print(f"Model metric names: {model.metrics_names}")
+    print(f"Train: {train_eval}")
+    print(f"Val: {val_eval}")
+    print(f"Test: {test_eval}")
+
+
+    # metrics = {}
+    # # Raw data
+    # data_type = 'raw_data'
+    # metrics[data_type] = {}
+    # for labeling in ['ct_three_state', 'ct_two_state', 'fixed_time_horizon', 'oracle']:
+    #     cnn_lstm = True if labeling == 'ct_three_state' else False
+    #     lstm = True if labeling == 'fixed_time_horizon' else False
+    #     transformer = True
+    #     metrics[data_type][labeling] = test_models(labeling, data_type,
+    #                                                raw_X_train, raw_X_val, raw_X_test, 
+    #                                                raw_Y_train_dict[labeling], raw_Y_val_dict[labeling], raw_Y_test_dict[labeling],
+    #                                                cnn_lstm=cnn_lstm, lstm=lstm, transformer=transformer
+    #                                                )
+    # # Features
+    # data_type = 'features'
+    # metrics[data_type] = {}
+    # for labeling in ['ct_three_state', 'ct_two_state', 'fixed_time_horizon', 'oracle']:
+    #     cnn_lstm = True if labeling == 'fixed_time_horizon' else False
+    #     lstm = True if labeling == 'fixed_time_horizon' else False
+    #     transformer = True
+    #     metrics[data_type][labeling] = test_models(labeling, data_type,
+    #                                                feat_X_train, feat_X_val, feat_X_test, 
+    #                                                feat_Y_train_dict[labeling], feat_Y_val_dict[labeling], feat_Y_test_dict[labeling],
+    #                                                cnn_lstm=cnn_lstm, lstm=lstm, transformer=transformer
+    #                                                )
+
+    # # Write metrics to JSON file
+    # results_filename = f"test_logs/test3/metrics.json"
+    # with open(results_filename, 'w') as file:
+    #     json.dump(metrics, file, indent=6)
