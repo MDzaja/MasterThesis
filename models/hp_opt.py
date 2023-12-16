@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '../')
+
 import yfinance as yf
 import pandas as pd
 import json
@@ -13,7 +16,10 @@ import os
 if __name__ == '__main__':
     # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     
-    raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
+    raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl(
+        '../artifacts/features/features_2009-06-22_2023-10-30.csv',
+        '../artifacts/labels/labels_dict_2009-06-22_2023-10-30.pkl'
+    )
     labels = labels_dict['oracle']
 
     window_size = 30
@@ -31,7 +37,7 @@ if __name__ == '__main__':
     model_utils.hp_opt_cv(cnn_lstm.build_model_gp, 
                         cnn_lstm.define_search_space(), X, Y, 
                         'optimization_logs/cnn_lstm/cv_feat_oracle', 
-                        trial_num=200, initial_random_trials=20,
+                        trial_num=200, initial_random_trials=0,
                         early_stopping_patience=50, epochs=500,
                         batch_size=64, n_splits=10)
     

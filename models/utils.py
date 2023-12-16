@@ -24,8 +24,7 @@ import pandas as pd
 import pickle
 import os
 
-sys.path.append('../')
-from label_algorithms import oracle
+from labels import oracle
 
 def get_ft_n_Y(window_size=60):
     features_df = pd.read_csv('../features/test_features.csv', index_col=0)
@@ -42,16 +41,16 @@ def get_ft_n_Y(window_size=60):
     return X, Y
 
 
-def get_aligned_raw_feat_lbl():
+def get_aligned_raw_feat_lbl(feat_csv_path, lbl_pkl_path):
     ticker_symbol = 'GC=F'
     start_date = '2000-01-01'
     end_date = '2023-11-01'
     raw_data = yf.download(ticker_symbol, start_date, end_date, interval='1d')
     raw_data.index = raw_data.index.tz_localize(None)
 
-    features_df = pd.read_csv('../features/test_features.csv', index_col=0)
+    features_df = pd.read_csv(feat_csv_path, index_col=0)
 
-    with open('../label_algorithms/labels_dict.pkl', 'rb') as file:
+    with open(lbl_pkl_path, 'rb') as file:
         labels_dict = pickle.load(file)
 
     # Ensure indices are in the same format
