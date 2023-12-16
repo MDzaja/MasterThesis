@@ -1,0 +1,101 @@
+{
+    "best_trial": {
+        "trial_id": "14",
+        "hyperparameters": {
+            "first_conv_filters": 96,
+            "first_conv_kernel_size": 3,
+            "num_conv_layers": 3,
+            "final_pool_size": 2,
+            "final_conv_dropout": 0.2,
+            "num_lstm_layers": 1,
+            "lstm_units_0": 128,
+            "lstm_dropout": 0.4,
+            "dense_units": 64,
+            "learning_rate": 0.01225565522743572,
+            "decay_steps": 3000,
+            "decay_rate": 0.9463327617521953,
+            "conv_filters_1": 64,
+            "conv_kernel_size_1": 3,
+            "conv_filters_2": 64,
+            "conv_kernel_size_2": 5,
+            "lstm_units_1": 352,
+            "lstm_units_2": 480
+        },
+        "score": 0.6478603184223175,
+        "metrics": {
+            "loss": [
+                0.6435360312461853
+            ],
+            "binary_accuracy": [
+                0.6610820293426514
+            ],
+            "precision": [
+                0.6636227071285248
+            ],
+            "recall": [
+                0.9899841845035553
+            ],
+            "val_loss": [
+                0.6478603184223175
+            ],
+            "val_binary_accuracy": [
+                0.6471408605575562
+            ],
+            "val_precision": [
+                0.6471408605575562
+            ],
+            "val_recall": [
+                1.0
+            ]
+        }
+    },
+    "worst_trial": {
+        "trial_id": "03",
+        "hyperparameters": {
+            "first_conv_filters": 64,
+            "first_conv_kernel_size": 5,
+            "num_conv_layers": 1,
+            "final_pool_size": 2,
+            "final_conv_dropout": 0.4,
+            "num_lstm_layers": 1,
+            "lstm_units_0": 320,
+            "lstm_dropout": 0.0,
+            "dense_units": 64,
+            "learning_rate": 0.003688218752809298,
+            "decay_steps": 8000,
+            "decay_rate": 0.9659497672920674,
+            "conv_filters_1": 64,
+            "conv_kernel_size_1": 3,
+            "conv_filters_2": 128,
+            "conv_kernel_size_2": 5,
+            "lstm_units_1": 160
+        },
+        "score": 0.6541653871536255,
+        "metrics": {
+            "loss": [
+                0.6440266370773315
+            ],
+            "binary_accuracy": [
+                0.6563699841499329
+            ],
+            "precision": [
+                0.6630242168903351
+            ],
+            "recall": [
+                0.9781233668327332
+            ],
+            "val_loss": [
+                0.6541653871536255
+            ],
+            "val_binary_accuracy": [
+                0.6471408605575562
+            ],
+            "val_precision": [
+                0.6471408605575562
+            ],
+            "val_recall": [
+                1.0
+            ]
+        }
+    }
+}

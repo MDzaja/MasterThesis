@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '../')
+
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras_tuner import BayesianOptimization, Objective
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
@@ -8,12 +11,9 @@ from functools import partial
 from skopt import gp_minimize
 from skopt.callbacks import CheckpointSaver, VerboseCallback
 from skopt import load
-from keras import backend as K
 import gc
 from memory_profiler import profile
 import tensorflow as tf
-
-import sys
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
@@ -23,8 +23,10 @@ import seaborn as sns
 import pandas as pd
 import pickle
 import os
+import psutil
 
 from labels import oracle
+
 
 def get_ft_n_Y(window_size=60):
     features_df = pd.read_csv('../features/test_features.csv', index_col=0)
@@ -90,22 +92,6 @@ def get_Y(labels: pd.Series, window_size) -> pd.Series:
     return labels[window_size:]
 
 
-def get_dummy_X_n_Y(window_size=60):
-    ticker_symbol = 'GC=F'
-    start_date = '2000-01-01'
-    end_date = '2023-11-01'
-
-    data = yf.download(ticker_symbol, start_date, end_date, interval='1d')
-    data.index = data.index.tz_localize(None)
-
-    fee = 0.0004
-    labels = oracle.binary_trend_labels(data['Close'], fee=fee)
-
-    X = get_X(data, window_size)
-    Y = get_Y(labels, window_size)
-    
-    return X, Y
-
 def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping_patience=20, epochs=100):
     # Compute class weights
     classes = np.unique(Y_train)
@@ -117,99 +103,6 @@ def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping
     model = build_model_func(X_train.shape[-2], X_train.shape[-1])
 
     model.fit(X_train, Y_train, epochs=epochs, validation_data=(X_val, Y_val), batch_size=64, class_weight=class_weight_dict, callbacks=[early_stopping])
-
-
-def hyperparameter_optimization(build_model_func, X_train, Y_train, X_val, Y_val, directory, project_name, max_trials=100, executions_per_trial=1, early_stopping_patience=20, epochs=100, batch_size=64):
-    # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor=get_default_monitor_metric(), patience=early_stopping_patience),
-
-    # Bayesian Optimization tuner
-    tuner = BayesianOptimization(
-        lambda hp: build_model_func(hp, X_train.shape[-2], X_train.shape[-1]),
-        objective=get_default_monitor_metric(),
-        max_trials=max_trials,
-        executions_per_trial=executions_per_trial,
-        directory=directory,
-        project_name=project_name
-    )
-
-    # Search for the best hyperparameters
-    tuner.search(X_train, Y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, Y_val), callbacks=[early_stopping])
-
-    # Analyze hyperparameters
-    save_hyperparameter_analysis(directory, tuner)
-
-    # Analyze overall trials
-    save_best_n_worst_trials(directory, tuner)
-
-
-def save_hyperparameter_analysis(directory, tuner):
-    hp_stats = {}
-    for trial_id, trial in tuner.oracle.trials.items():
-        for hp, value in trial.hyperparameters.values.items():
-            if hp not in hp_stats:
-                hp_stats[hp] = {'values': [], 'type': 'numerical' if isinstance(value, (int, float)) else 'categorical'}
-            hp_stats[hp]['values'].append(value)
-
-    for hp in hp_stats.keys():
-        if hp_stats[hp]['type'] == 'numerical':
-            values = np.array(hp_stats[hp]['values'])
-            hp_stats[hp].update({
-                'average': np.mean(values),
-                'median': np.median(values),
-                'max': np.max(values),
-                'min': np.min(values),
-                '90th_percentile': np.percentile(values, 90)
-            })
-            hp_stats[hp].pop('values')
-        else:
-            hp_stats[hp]['count'] = {val: hp_stats[hp]['values'].count(val) for val in set(hp_stats[hp]['values'])}
-
-    with open(f'{directory}/hp_analysis.json', 'w') as f:
-        json.dump(hp_stats, f, default=convert_types, indent=4)
-
-
-def save_best_n_worst_trials(directory, tuner):
-    non_null_trials = [t for t in tuner.oracle.trials.values() if t.score is not None]
-    sorted_trials = sorted_trials = sorted(non_null_trials, key=lambda t: t.score)
-    best_trial = sorted_trials[0]
-    worst_trial = sorted_trials[-1]
-
-    overall_info = {
-        'best_trial': {
-            'trial_id': best_trial.trial_id,
-            'hyperparameters': best_trial.hyperparameters.values,
-            'score': best_trial.score,
-            'metrics': extract_trial_metrics(best_trial)
-        },
-        'worst_trial': {
-            'trial_id': worst_trial.trial_id,
-            'hyperparameters': worst_trial.hyperparameters.values,
-            'score': worst_trial.score,
-            'metrics': extract_trial_metrics(worst_trial)
-        }
-    }
-
-    with open(f'{directory}/overall_info.json', 'w') as f:
-        json.dump(overall_info, f, default=convert_types, indent=4)
-
-
-def extract_trial_metrics(trial):
-    # Extract all available metrics for a given trial
-    metrics = {}
-    for metric_name in trial.metrics.metrics.keys():
-        metric_history = trial.metrics.get_history(metric_name)
-        if metric_history:
-            # Assuming the last entry in the metric history contains the metric value
-            last_metric_observation = metric_history[-1]
-            #if hasattr(last_metric_observation, 'value'):
-                # If the MetricObservation has a 'value' attribute
-            #    metrics[metric_name] = last_metric_observation.value
-            #elif isinstance(last_metric_observation, dict) and 'value' in last_metric_observation:
-                # If the MetricObservation is a dictionary with a 'value' key
-            # TODO remove if unnecessary
-            metrics[metric_name] = last_metric_observation['value']
-    return metrics
 
 
 # Convert NumPy types to Python types for JSON serialization
@@ -293,26 +186,29 @@ def plot_acc_auc(file_path):
     merged_df = merged_df.drop(columns=['lbl_model'])	
     return merged_df
 
+
 def get_default_metrics() -> list:
     return [BinaryAccuracy(name='binary_accuracy'),
             Precision(name='precision'),
             Recall(name='recall'),
             AUC(name='auc')]
 
+
 def get_default_monitor_metric() -> str:
     return 'val_auc'
+
 
 def get_default_loss() -> str:
     return 'binary_crossentropy'
 
-@profile
+
 def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, initial_random_trials=10, 
               early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
     
     metric_history = []
     partial_objective = partial(objective_gp, X=X, Y=Y, build_model_gp=build_model_gp, epochs=epochs, 
-                                batch_size=batch_size, n_splits=n_splits, monitor_metric=get_default_monitor_metric(),
-                                early_stopping_patience=early_stopping_patience, metric_history=metric_history, directory=directory)
+                                batch_size=batch_size, n_splits=n_splits, early_stopping_patience=early_stopping_patience, 
+                                metric_history=metric_history, directory=directory)
 
     # Load previous state if it exists
     checkpoint_path  = f'{directory}/optimization_state.pkl'
@@ -346,34 +242,51 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
         json.dump(overall_info, file, indent=4, default=convert_types)
 
 
-def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, monitor_metric, early_stopping_patience, metric_history, directory):
-    early_stopping = EarlyStopping(
-        monitor=monitor_metric, 
-        patience=early_stopping_patience,
-        mode='max'
-    )
-    model_fn = lambda: build_model_gp(params, X.shape[-2], X.shape[-1])
+def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, early_stopping_patience, metric_history, directory):
+    metrics = custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory)
     
-    metrics = custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping, directory)
+    tf.keras.backend.clear_session()
+    gc.collect()
+
     metric_history.append(metrics)
     return -metrics[get_default_monitor_metric()]
 
 
 @profile
-def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_stopping, directory):
+def custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
 
+    memory_log_path = os.path.join(directory, "memory_usage.log")
+
     for train_index, val_index in tscv.split(X):
+
+        mem_before = get_memory_usage()
+        with open(memory_log_path, "a") as mem_log:
+            mem_log.write(f"Memory usage before training split: {mem_before:.2f} MB\n")
+
         X_train, X_val = X[train_index], X[val_index]
         Y_train, Y_val = Y[train_index], Y[val_index]
-        train_dataset = tf.data.Dataset.from_tensor_slices((X_train, Y_train)).batch(batch_size)
-        val_dataset = tf.data.Dataset.from_tensor_slices((X_val, Y_val)).batch(batch_size)
+        train_dataset = (tf.data.Dataset.from_tensor_slices((X_train, Y_train))
+                            .batch(batch_size)
+                            .cache() # TODO probably remove this
+                            .prefetch(tf.data.AUTOTUNE))
+        val_dataset = (tf.data.Dataset.from_tensor_slices((X_val, Y_val))
+                            .batch(batch_size)
+                            .cache() # TODO probably remove this
+                            .prefetch(tf.data.AUTOTUNE))
 
         # Compute class weights
         classes = np.unique(Y_train)
-        class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
-        class_weight_dict = dict(zip(classes, class_weights))
+        class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train)
+        class_weight_dict = dict(zip(classes.astype(int), class_weights))
+
+        # Early stopping callback
+        early_stopping = EarlyStopping(
+            monitor=get_default_monitor_metric(), 
+            patience=early_stopping_patience,
+            mode='max'
+        )
 
         # Configure ModelCheckpoint
         checkpoint = ModelCheckpoint(
@@ -384,7 +297,11 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
             mode='max'
         )
 
-        model = model_fn()
+        # Add profiling callback to the fit function
+        #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='../artifacts/models/memory_logs', profile_batch='500,520')
+
+        model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
+
         model.fit(
             train_dataset,
             validation_data=val_dataset,
@@ -405,12 +322,21 @@ def custom_cross_val_score(model_fn, X, Y, n_splits, epochs, batch_size, early_s
             all_metrics.setdefault(f'val_{metric_name}', []).append(val_metrics[i])
 
         # Clear the model and Keras session to free memory
-        del model
-        K.clear_session()
+        del model, X_train, X_val, Y_train, Y_val, train_dataset, val_dataset
+        tf.keras.backend.clear_session()
         gc.collect()
 
         # Remove the temporary model file
         os.remove(f'{directory}/tmp_model.keras')
+
+        mem_after = get_memory_usage()
+        with open(memory_log_path, "a") as mem_log:
+            mem_log.write(f"Memory usage after training split: {mem_after:.2f} MB\n")
+            mem_log.write(f"Memory usage difference: {mem_after - mem_before:.2f} MB\n\n")
+
+    # Clear the memory again
+    del tscv
+    gc.collect()
 
     # Calculate and return mean metrics
     mean_metrics = {metric: np.mean(values) for metric, values in all_metrics.items()}
@@ -437,22 +363,22 @@ def process_trials(result, search_space, metric_history):
     worst_trial_index = np.argmax(result.func_vals)
 
     # Metrics for the best trial
-    best_trial_metrics = metric_history[best_trial_index]
+    # best_trial_metrics = metric_history[best_trial_index]
     best_trial_params = {search_space[i].name: result.x[i] for i in range(len(search_space))}
     best_trial = {
         'hyperparameters': best_trial_params,
         'score': -result.fun,
-        'metrics': best_trial_metrics
+        # 'metrics': best_trial_metrics
     }
 
     # Metrics for the worst trial
     worst_score = result.func_vals[worst_trial_index]
-    worst_trial_metrics = metric_history[worst_trial_index]
+    # worst_trial_metrics = metric_history[worst_trial_index]
     worst_trial_params = {search_space[i].name: result.x_iters[worst_trial_index][i] for i in range(len(search_space))}
     worst_trial = {
         'hyperparameters': worst_trial_params,
         'score': -worst_score,
-        'metrics': worst_trial_metrics
+        # 'metrics': worst_trial_metrics
     }
 
     return {
@@ -474,3 +400,12 @@ class ProgressTracker(VerboseCallback):
             current_trial = len(result.func_vals)
             best_score = result.fun
             file.write(f"Trial {current_trial} finished: Best score = {best_score}\n")
+
+
+def get_memory_usage():
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / (1024 * 1024)  # Convert to MB
+
+def restart_script():
+    print("Restarting script...")
+    os.execl(sys.executable, sys.executable, *sys.argv)

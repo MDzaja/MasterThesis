@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '../')
+
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Dropout, Conv1D, LayerNormalization, MultiHeadAttention, GlobalAveragePooling1D
 from tensorflow.keras.optimizers import Adam
@@ -8,7 +11,7 @@ from sklearn.model_selection import train_test_split
 import os
 import numpy as np
 
-import utils as model_utils
+from models import utils as model_utils
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     # Normalization and Attention

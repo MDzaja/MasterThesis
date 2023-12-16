@@ -1,14 +1,12 @@
+import sys
+sys.path.insert(0, '../')
+
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import TimeSeriesSplit
-from skopt.space import Integer, Real, Categorical
 
-import os
-
-import utils as model_utils
+from models import utils as model_utils
 
 
 def build_model_raw(window_size, n_features):
@@ -149,44 +147,3 @@ def define_search_space():
         Integer(32, 512, name='lstm_units_3')
     ]
 
-
-def cv_train_model():
-    X, Y = model_utils.get_dummy_X_n_Y()
-
-    tscv = TimeSeriesSplit(n_splits=10)
-
-    # Iterate over each fold
-    for fold, (train_index, test_index) in enumerate(tscv.split(X)):
-        print(f"Training on fold {fold}...")
-        
-        # Split your data into training and testing sets for the current fold
-        X_train, X_test = X[train_index], X[test_index]
-        Y_train, Y_test = Y[train_index], Y[test_index]
-        
-        # Determine the window size and number of features from the input shape
-        window_size, n_features = X_train.shape[1], X_train.shape[2]
-        
-        # Build and compile the model
-        model = build_model(window_size, n_features)
-        
-        # Fit the model to the training data
-        model.fit(X_train, Y_train, epochs=10)  # You can add more parameters such as batch_size if needed
-        
-        # Evaluate the model on the test data
-        eval_result = model.evaluate(X_test, Y_test)
-        print(f"Fold {fold} - Loss: {eval_result[0]}, Binary Accuracy: {eval_result[1]}")
-
-
-if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-    
-    X, Y = model_utils.get_ft_n_Y(window_size=60)
-    X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, shuffle=False)
-
-    model_utils.hyperparameter_optimization(build_model_hp, X_train, Y_train, X_val, Y_val, 
-                                            'optimization_logs/lstm/test_w_features', 'trials', 
-                                            max_trials=50, executions_per_trial=2, 
-                                            early_stopping_patience=30, epochs=150)
-    
-    
-    #model_utils.train_model(build_model, X_train, Y_train, X_val, Y_val, early_stopping_patience=30, epochs=150)

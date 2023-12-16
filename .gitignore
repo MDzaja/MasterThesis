@@ -3,7 +3,12 @@
 
 __pycache__/
 
-models/optimization_logs/**/trials/
-models/optimization_logs/**/temp_model.keras
 
-**/test_logs/**/saved_models/
+**/saved_models/
+
+**/trials/
+**/output.log
+**/memory_usage.log
+**/optimization_state
+**/tmp_model.keras
+**/mprofile*

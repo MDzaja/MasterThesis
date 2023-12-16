@@ -1,0 +1,86 @@
+{
+    "best_trial": {
+        "trial_id": "34",
+        "hyperparameters": {
+            "units1": 288,
+            "num_add_lstm_layers": 1,
+            "lstm_units_0": 288,
+            "dense_units": 256,
+            "dropout_rate_dense": 0.2,
+            "learning_rate": 0.006261699750552193,
+            "decay_steps": 9000,
+            "decay_rate": 0.9105925908383987,
+            "lstm_units_1": 32,
+            "lstm_units_2": 288
+        },
+        "score": 0.6465042233467102,
+        "metrics": {
+            "loss": [
+                0.6386348605155945
+            ],
+            "binary_accuracy": [
+                0.6621291637420654
+            ],
+            "precision": [
+                0.662470132112503
+            ],
+            "recall": [
+                0.9984185695648193
+            ],
+            "val_loss": [
+                0.6465042233467102
+            ],
+            "val_binary_accuracy": [
+                0.6471408605575562
+            ],
+            "val_precision": [
+                0.6473466455936432
+            ],
+            "val_recall": [
+                0.9989224076271057
+            ]
+        }
+    },
+    "worst_trial": {
+        "trial_id": "29",
+        "hyperparameters": {
+            "units1": 384,
+            "num_add_lstm_layers": 2,
+            "lstm_units_0": 512,
+            "dense_units": 160,
+            "dropout_rate_dense": 0.30000000000000004,
+            "learning_rate": 0.00010387767656325824,
+            "decay_steps": 8000,
+            "decay_rate": 0.8187694801463683,
+            "lstm_units_1": 512,
+            "lstm_units_2": 64
+        },
+        "score": 0.652785450220108,
+        "metrics": {
+            "loss": [
+                0.6374614536762238
+            ],
+            "binary_accuracy": [
+                0.6619546413421631
+            ],
+            "precision": [
+                0.6635625958442688
+            ],
+            "recall": [
+                0.9928835034370422
+            ],
+            "val_loss": [
+                0.652785450220108
+            ],
+            "val_binary_accuracy": [
+                0.6471408605575562
+            ],
+            "val_precision": [
+                0.6471408605575562
+            ],
+            "val_recall": [
+                1.0
+            ]
+        }
+    }
+}
