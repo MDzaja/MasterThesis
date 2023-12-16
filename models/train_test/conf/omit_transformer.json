@@ -1,0 +1,22 @@
+{
+    "ct_two_state": {
+        "raw_data": [ "cnn_lstm", "lstm" ],
+        "features": [ "cnn_lstm", "lstm" ]
+    },
+    "ct_three_state": {
+        "raw_data": [ "cnn_lstm", "lstm" ],
+        "features": [ "cnn_lstm", "lstm" ]
+    },
+    "fixed_time_horizon": {
+        "raw_data": [ "cnn_lstm", "lstm" ],
+        "features": [ "cnn_lstm", "lstm" ]
+    },
+    "oracle": {
+        "raw_data": [ "cnn_lstm", "lstm" ],
+        "features": [ "cnn_lstm", "lstm" ]
+    },
+    "triple_barrier": {
+        "raw_data": [ "cnn_lstm", "lstm" ],
+        "features": [ "cnn_lstm", "lstm" ]
+    }
+}

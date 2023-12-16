@@ -1,0 +1,32 @@
+{
+    "best_trial": {
+        "hyperparameters": {
+            "lstm_units_0": 258,
+            "num_lstm_layers": 2,
+            "dense_units": 37,
+            "dropout_rate_dense": 0.4932825270346888,
+            "learning_rate": 0.0006193110764719328,
+            "decay_steps": 5161,
+            "decay_rate": 0.8551906659808679,
+            "lstm_units_1": 34,
+            "lstm_units_2": 121,
+            "lstm_units_3": 499
+        },
+        "score": 0.5909478187561035
+    },
+    "worst_trial": {
+        "hyperparameters": {
+            "lstm_units_0": 334,
+            "num_lstm_layers": 3,
+            "dense_units": 93,
+            "dropout_rate_dense": 0.201847982925974,
+            "learning_rate": 0.04140196147371527,
+            "decay_steps": 6664,
+            "decay_rate": 0.8669189276248662,
+            "lstm_units_1": 461,
+            "lstm_units_2": 375,
+            "lstm_units_3": 108
+        },
+        "score": 0.5
+    }
+}
