@@ -9,6 +9,6 @@ __pycache__/
 **/trials/
 **/output.log
 **/memory_usage.log
-**/optimization_state
+**/optimization_state.pkl
 **/tmp_model.keras
 **/mprofile*
