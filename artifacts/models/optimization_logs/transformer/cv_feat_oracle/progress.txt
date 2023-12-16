@@ -28,3 +28,4 @@ Trial 27 finished: Best score = -0.5770184516906738
 Trial 28 finished: Best score = -0.5770184516906738
 Trial 29 finished: Best score = -0.5770184516906738
 Trial 30 finished: Best score = -0.5770184516906738
+Trial 31 finished: Best score = -0.5891734302043915
