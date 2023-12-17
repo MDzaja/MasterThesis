@@ -1,0 +1,74 @@
+{
+    "best_trial": {
+        "trial_num": 74,
+        "hyperparameters": {
+            "conv_filters_0": 47,
+            "conv_kernel_size_0": 5,
+            "num_conv_layers": 1,
+            "conv_pool_size": 2,
+            "conv_dropout": 0.03254821187993729,
+            "num_lstm_layers": 3,
+            "lstm_dropout": 0.005314672101683183,
+            "dense_units": 218,
+            "learning_rate": 0.0008095425180834763,
+            "decay_steps": 3287,
+            "decay_rate": 0.9700686539205166,
+            "conv_filters_1": 112,
+            "conv_kernel_size_1": 5,
+            "conv_filters_2": 40,
+            "conv_kernel_size_2": 3,
+            "lstm_units_0": 481,
+            "lstm_units_1": 490,
+            "lstm_units_2": 494
+        },
+        "score": 0.5732034265995025,
+        "metrics": {
+            "train_loss": 0.6867270052433014,
+            "val_loss": 0.7297344028949737,
+            "train_binary_accuracy": 0.5056234270334243,
+            "val_binary_accuracy": 0.44813664853572843,
+            "train_precision": 0.6130244195461273,
+            "val_precision": 0.5173095881938934,
+            "train_recall": 0.4167649120092392,
+            "val_recall": 0.2929120875895023,
+            "train_auc": 0.5768283247947693,
+            "val_auc": 0.5732034265995025
+        }
+    },
+    "worst_trial": {
+        "trial_num": 16,
+        "hyperparameters": {
+            "conv_filters_0": 36,
+            "conv_kernel_size_0": 5,
+            "num_conv_layers": 3,
+            "conv_pool_size": 2,
+            "conv_dropout": 0.22824478574778767,
+            "num_lstm_layers": 3,
+            "lstm_dropout": 0.12962182308386758,
+            "dense_units": 196,
+            "learning_rate": 0.032805720748163264,
+            "decay_steps": 3688,
+            "decay_rate": 0.8419807476129815,
+            "conv_filters_1": 121,
+            "conv_kernel_size_1": 3,
+            "conv_filters_2": 115,
+            "conv_kernel_size_2": 3,
+            "lstm_units_0": 274,
+            "lstm_units_1": 468,
+            "lstm_units_2": 265
+        },
+        "score": 0.5015746295452118,
+        "metrics": {
+            "train_loss": 1.098072785139084,
+            "val_loss": 1.1548803746700287,
+            "train_binary_accuracy": 0.43382330536842345,
+            "val_binary_accuracy": 0.445652174949646,
+            "train_precision": 0.20627147555351258,
+            "val_precision": 0.197826087474823,
+            "train_recall": 0.3,
+            "val_recall": 0.3,
+            "train_auc": 0.5005303740501403,
+            "val_auc": 0.5015746295452118
+        }
+    }
+}

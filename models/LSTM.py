@@ -40,20 +40,20 @@ def build_model_raw(window_size, n_features):
 def build_model_feat(window_size, n_features):
     model = Sequential()
     model.add(Bidirectional(
-        LSTM(288,
+        LSTM(258,
              return_sequences=True,
              input_shape=(window_size, n_features)
              )
     ))
-    model.add(Bidirectional(LSTM(288, return_sequences=False)))
-    model.add(Dense(units=256, activation='relu'))
-    model.add(Dropout(rate=0.2))
+    model.add(Bidirectional(LSTM(34, return_sequences=False)))
+    model.add(Dense(units=37, activation='relu'))
+    model.add(Dropout(rate=0.49328))
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0063,
-        decay_steps=9000,
-        decay_rate=0.91)
+        initial_learning_rate=0.000619,
+        decay_steps=5161,
+        decay_rate=0.85519)
 
     opt = Adam(learning_rate=lr_schedule)
 

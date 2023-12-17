@@ -72,13 +72,13 @@ def build_model_raw(window_size, n_features):
 
 
 def build_model_feat(window_size, n_features):
-    num_transformer_blocks = 3
-    head_size = 64
-    num_heads = 8
-    ff_dim = 2
-    dropout = 0.1
-    mlp_units = [480, 256]
-    mlp_dropout = 0.3
+    num_transformer_blocks = 2
+    head_size = 142
+    num_heads = 4
+    ff_dim = 30
+    dropout = 0.4166
+    mlp_units = [394]
+    mlp_dropout = 0.1868
 
     inputs = Input(shape=(window_size, n_features))
     x = inputs
@@ -95,9 +95,9 @@ def build_model_feat(window_size, n_features):
 
     # Learning rate schedule
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0028,
-        decay_steps=5000,
-        decay_rate=0.84)
+        initial_learning_rate=0.001986,
+        decay_steps=5671,
+        decay_rate=0.86521)
 
     # Optimizer
     opt = Adam(learning_rate=lr_schedule)

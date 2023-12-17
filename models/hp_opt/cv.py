@@ -132,7 +132,7 @@ def custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch
                 callbacks=[early_stopping, checkpoint],
                 verbose=0
             )
-        except tf.errors.InternalError as e:
+        except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
             print("Caught TensorFlow InternalError:", e)
             model_utils.restart_script()
 
