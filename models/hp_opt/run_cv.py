@@ -35,7 +35,7 @@ def main(gpu_id, data_type, model_name, labeling, directory):
 
     raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl(
         '../../artifacts/features/features_2009-06-22_2023-10-30.csv',
-        '../../artifacts/labels/labels_dict_2009-06-22_2023-10-30.pkl'
+        '../../artifacts/labels/labels_dict_2000-2023_w_5h_params.pkl'
     )
     labels = labels_dict[labeling]
 

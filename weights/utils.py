@@ -1,6 +1,16 @@
+import sys
+sys.path.insert(0, '../')
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
+import yfinance as yf
+import pickle
+
+from weights import backward_looking as bl
+from weights import forward_looking as fl
+from weights import sequential_return as sr
+from weights import trend_interval_return as tir
 
 def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.Series):
     # Get union of indices
@@ -48,3 +58,26 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.S
 
     # Show the plot
     plt.show()
+
+if __name__ == '__main__':
+    ticker_symbol = 'GC=F'
+    start_date = '2000-01-01'
+    end_date = '2023-11-01'
+
+    prices = yf.download(ticker_symbol, start_date, end_date, interval='1d')['Close']
+    prices.index = prices.index.tz_localize(None)
+
+    with open('../artifacts/labels/labels_dict_2000-2023_w_23y_params.pkl', 'rb') as file:
+        labels_dict = pickle.load(file)
+    labels_dict = {k: pd.Series(v, index=pd.to_datetime(v.index)) for k, v in labels_dict.items()}
+
+    all_weights = {}
+    for label_name, labels in labels_dict.items():
+        all_weights[label_name] = {}
+        all_weights[label_name]['backward_looking'] = bl.get_weights(prices, labels)
+        all_weights[label_name]['forward_looking'] = fl.get_weights(prices, labels)
+        all_weights[label_name]['sequential_return'] = sr.get_weights(prices, labels)
+        all_weights[label_name]['trend_interval_return'] = tir.get_weights(prices, labels)
+
+    with open('../artifacts/weights/weights_2000-2023_w_lbl_23y_params.pkl', 'wb') as file:
+        pickle.dump(all_weights, file)

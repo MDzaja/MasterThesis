@@ -1,0 +1,6 @@
+Trial 1 finished: Best score = -0.5329162001609802
+Trial 2 finished: Best score = -0.5329162001609802
+Trial 3 finished: Best score = -0.5488725125789642
+Trial 4 finished: Best score = -0.5533355891704559
+Trial 5 finished: Best score = -0.5533355891704559
+Trial 6 finished: Best score = -0.5533355891704559

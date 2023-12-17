@@ -122,7 +122,10 @@ def load_config(config_path):
 
 def prepare_data():
     # Load your raw data, features, and labels
-    raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl()
+    raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl(
+        '../../artifacts/features/features_2009-06-22_2023-10-30.csv',
+        '../../artifacts/labels/labels_dict_2000-2023_w_23y_params.pkl'
+    )
 
     # Process raw data
     raw_X = model_utils.get_X(raw_data, 60)

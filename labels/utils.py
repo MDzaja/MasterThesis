@@ -1,4 +1,6 @@
 import sys
+sys.path.insert(0, '../')
+
 import matplotlib.dates as mdates
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -121,32 +123,28 @@ def compute_return(prices: pd.Series, labels: pd.Series, fee: float=0) -> float:
 def save_all_labels(prices: pd.Series) -> dict:
     labels_dict = {}
     
-    tau = 0.00096
+    tau = 0.00298
     labels_dict['ct_two_state'] = ct2.binary_trend_labels(prices, tau=tau)
 
-    tau = 0.00096
-    window = 13
+    tau = 0.00176
+    window = 16
     labels_dict['ct_three_state'] = ct3.binary_trend_labels(prices, tau=tau, w=window)
-
-    tau = 0.00005
-    H = 8
-    labels_dict['fixed_time_horizon-H=8'] = fth.binary_trend_labels(prices, tau=tau, H=H)
 
     tau = 0
     H = 1
-    labels_dict['fixed_time_horizon-H=1'] = fth.binary_trend_labels(prices, tau=tau, H=H)
+    labels_dict['fixed_time_horizon'] = fth.binary_trend_labels(prices, tau=tau, H=H)
 
     fee = 0.0004
     labels_dict['oracle'] = oracle.binary_trend_labels(prices, fee=fee)
 
     tEvents = prices.index
-    t1 = prices.index.searchsorted(tEvents + pd.Timedelta(hours=1))
+    t1 = prices.index.searchsorted(tEvents + pd.Timedelta(days=30))
     t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
     minuteVol = tb.getMinuteVol(prices, span=100)
     minuteVol = minuteVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
-    labels_dict['triple_barrier'] = tb.binary_trend_labels(prices, tEvents, pt=0.6, sl=1.3, volatility=minuteVol, minRet=0, t1=t1)
+    labels_dict['triple_barrier'] = tb.binary_trend_labels(prices, tEvents, pt=0.1, sl=0.7, volatility=minuteVol, minRet=0, t1=t1)
 
-    with open('labels_dict.pkl', 'wb') as file:
+    with open('../artifacts/labels/labels_dict_2000-2023_w_23y_params.pkl', 'wb') as file:
         pickle.dump(labels_dict, file)
 
 
