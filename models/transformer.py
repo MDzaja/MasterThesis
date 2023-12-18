@@ -32,12 +32,12 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
 def build_model_raw(window_size, n_features):
     num_transformer_blocks = 2
-    head_size = 128
+    head_size = 183
     num_heads = 4
-    ff_dim = 16
-    dropout = 0.2
-    mlp_units = [160]
-    mlp_dropout = 0
+    ff_dim = 63
+    dropout = 0.3193
+    mlp_units = [43]
+    mlp_dropout = 0.0035
 
     inputs = Input(shape=(window_size, n_features))
     x = inputs
@@ -54,9 +54,9 @@ def build_model_raw(window_size, n_features):
 
     # Learning rate schedule
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0007,
-        decay_steps=2000,
-        decay_rate=0.97)
+        initial_learning_rate=0.00235,
+        decay_steps=7531,
+        decay_rate=0.8861)
 
     # Optimizer
     opt = Adam(learning_rate=lr_schedule)

@@ -13,20 +13,21 @@ from models import utils as model_utils
 def build_model_raw(window_size, n_features):
     model = Sequential()
     model.add(Bidirectional(
-        LSTM(224,
+        LSTM(279,
              return_sequences=True,
              input_shape=(window_size, n_features)
              )
     ))
-    model.add(Bidirectional(LSTM(64, return_sequences=False)))
-    model.add(Dense(units=192, activation='relu'))
-    model.add(Dropout(rate=0.1))
+    model.add(Bidirectional(LSTM(470, return_sequences=True)))
+    model.add(Bidirectional(LSTM(81, return_sequences=False)))
+    model.add(Dense(units=107, activation='relu'))
+    model.add(Dropout(rate=0.001542))
     model.add(Dense(1, activation='sigmoid'))
 
     lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0021,
-        decay_steps=3000,
-        decay_rate=0.98)
+        initial_learning_rate=0.0004979,
+        decay_steps=7854,
+        decay_rate=0.8249)
 
     opt = Adam(learning_rate=lr_schedule)
 

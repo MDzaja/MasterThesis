@@ -19,7 +19,7 @@ def build_model_raw(n_length, n_features):
     model.add(TimeDistributed(Dropout(0.0325)))
     model.add(TimeDistributed(Flatten()))
     model.add(Bidirectional(LSTM(481, return_sequences=True)))
-    model.add(Bidirectional(LSTM(490, return_sequences=False)))
+    model.add(Bidirectional(LSTM(490, return_sequences=True)))
     model.add(Bidirectional(LSTM(494, return_sequences=False)))
     model.add(Dropout(0.0053))
     model.add(Dense(218, activation='relu'))
@@ -43,7 +43,7 @@ def build_model_feat(n_length, n_features):
 
     model = Sequential()
     model.add(TimeDistributed(Conv1D(filters=78, kernel_size=5, activation='relu'), input_shape=(None, n_length, n_features)))
-    model.add(TimeDistributed(Conv1D(filters=93, kernel_size=5, activation='relu')))
+    model.add(TimeDistributed(Conv1D(filters=93, kernel_size=5, activation='relu', padding='same')))
     model.add(TimeDistributed(MaxPooling1D(pool_size=3)))
     model.add(TimeDistributed(Dropout(0.1429)))
     model.add(TimeDistributed(Flatten()))

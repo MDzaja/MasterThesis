@@ -1,4 +1,4 @@
-# Run example: python run.py 0 path/to/config.json path/to/results_directory
+# Run example: python run.py 0 --use_sample_weights path/to/config.json path/to/results_directory
 
 import sys
 sys.path.insert(0, '../../')
@@ -7,14 +7,19 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow as tf
 import json
 import argparse
 import os
+import pickle
+import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+import numpy as np
 
-import LSTM as lstm_impl
-import CNN_LSTM as cnn_lstm_impl
-import utils as model_utils
-import transformer as tr_impl
+from models import LSTM as lstm_impl
+from models import CNN_LSTM as cnn_lstm_impl
+from models import transformer as tr_impl
+from models import utils as model_utils
 
 dir_path = None
 
@@ -22,16 +27,17 @@ dir_path = None
 def parse_args():
     parser = argparse.ArgumentParser(description="Run models based on a configuration file.")
     parser.add_argument('gpu_id', type=str, choices=['0', '1'], help='GPU ID')
+    parser.add_argument('--use_sample_weights', action='store_true', help='Use sample weights')
     parser.add_argument('config_path', type=str, help='Path to the configuration JSON file')
     parser.add_argument('directory', type=str, help='Path to result directory')
     args = parser.parse_args()
     return args
 
 
-def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_test, cnn_lstm=False, lstm=False, transformer=False):
+def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_test, sample_weights=None, cnn_lstm=False, lstm=False, transformer=False):
     # Compute class weights
     classes = np.unique(Y_train)
-    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
+    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train)
     class_weight_dict = dict(zip(classes, class_weights))
 
     model_configs = {}
@@ -71,19 +77,34 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
             _X_val = _X_val.reshape((_X_val.shape[0], n_steps, n_length, n_features))
             _X_test = _X_test.reshape((_X_test.shape[0], n_steps, n_length, n_features))
 
-
         # Build and train the model
         model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
         early_stopping = EarlyStopping(monitor=model_utils.get_default_monitor_metric(), patience=config['patience'])
+        print(f"Training {model_name} on {data_type} data with {labeling} labeling...", flush=True)
+        # print("X_train shape:", _X_train.shape, flush=True)
+        # print("Y_train shape:", Y_train.shape, flush=True)
+        # print("Sample weights (train) shape:", sample_weights['train'].shape if sample_weights else "No sample weights", flush=True)
+        # print("first 5 weights:", sample_weights['train'][:5] if sample_weights else "No sample weights", flush=True)
+        # print("last 5 weights:", sample_weights['train'][-5:] if sample_weights else "No sample weights", flush=True)
         model.fit(_X_train, Y_train, epochs=config['epochs'], validation_data=(_X_val, Y_val), 
-                  batch_size=config['batch_size'], class_weight=class_weight_dict, callbacks=[early_stopping])
+                  batch_size=config['batch_size'], class_weight=class_weight_dict, callbacks=[early_stopping],
+                  #sample_weight=sample_weights['train'] if sample_weights else None,
+                  verbose=0)
+        print(f"Finished training {model_name} on {data_type} data with {labeling} labeling.", flush=True)
 
         # Evaluate the model
-        train_eval = model.evaluate(_X_train, Y_train)
-        val_eval = model.evaluate(_X_val, Y_val)
-        test_eval = model.evaluate(_X_test, Y_test)
+        if sample_weights is None:
+            train_eval = model.evaluate(_X_train, Y_train)
+            val_eval = model.evaluate(_X_val, Y_val)
+            test_eval = model.evaluate(_X_test, Y_test)
+        else:
+            train_eval = weighted_evaluation(model, _X_train, Y_train, sample_weights['train'])
+            val_eval = weighted_evaluation(model, _X_val, Y_val, sample_weights['val'])
+            test_eval = weighted_evaluation(model, _X_test, Y_test, sample_weights['test'])
 
         # Save the model
+        if not os.path.exists(f"{dir_path}/saved_models"):
+            os.makedirs(f"{dir_path}/saved_models")
         model.save(f"{dir_path}/saved_models/{data_type}-{labeling}-{model_name}.keras")
 
         # Store results
@@ -120,7 +141,7 @@ def load_config(config_path):
     return config
 
 
-def prepare_data():
+def prepare_data(get_weights=False):
     # Load your raw data, features, and labels
     raw_data, features_df, labels_dict = model_utils.get_aligned_raw_feat_lbl(
         '../../artifacts/features/features_2009-06-22_2023-10-30.csv',
@@ -135,34 +156,60 @@ def prepare_data():
     feat_X = model_utils.get_X(features_df, 30)[30:]
     feat_Y_dict = {key: model_utils.get_Y(series, 30)[30:] for key, series in labels_dict.items()}
 
+    # Get sample weights
+    if get_weights:
+        weights_path = '../../artifacts/weights/weights_2000-2023_w_lbl_23y_params.pkl'
+        with open(weights_path, 'rb') as file:
+                sample_weights = pickle.load(file)
+        for label, weights_dict in sample_weights.items():
+            for weight_alg, weights in weights_dict.items():
+                sample_weights[label][weight_alg] = pd.Series(weights, index=pd.to_datetime(weights.index))
+                sample_weights[label][weight_alg] = sample_weights[label][weight_alg].reindex(feat_Y_dict['oracle'].index)
+
     # Initialize dictionaries to hold split data
     X = {'raw_data': {}, 'features': {}}
     Y = {'raw_data': {}, 'features': {}}
 
-    # Split raw data
-    X['raw_data']['train'], X['raw_data']['val'], raw_Y_train, raw_Y_val = train_test_split(raw_X, list(raw_Y_dict.values()), test_size=0.2, shuffle=False)
-    X['raw_data']['val'], X['raw_data']['test'], raw_Y_val, raw_Y_test = train_test_split(X['raw_data']['val'], raw_Y_val, test_size=0.25, shuffle=False)
+    # Calculate split boundaries
+    total_samples = raw_X.shape[0]
+    train_end = int(total_samples * 0.75)
+    val_end = int(total_samples * 0.90)
 
-    # Split feature data
-    X['features']['train'], X['features']['val'], feat_Y_train, feat_Y_val = train_test_split(feat_X, list(feat_Y_dict.values()), test_size=0.2, shuffle=False)
-    X['features']['val'], X['features']['test'], feat_Y_val, feat_Y_test = train_test_split(X['features']['val'], feat_Y_val, test_size=0.25, shuffle=False)
+    # Split X data
+    X['raw_data']['train'], X['raw_data']['val'], X['raw_data']['test'] = raw_X[:train_end], raw_X[train_end:val_end], raw_X[val_end:]
+    X['features']['train'], X['features']['val'], X['features']['test'] = feat_X[:train_end], feat_X[train_end:val_end], feat_X[val_end:]
 
-    # Organize Y data into dictionaries
+    # Split Y data
     for i, label in enumerate(labels_dict.keys()):
-        Y['raw_data'][label] = {'train': raw_Y_train[i], 'val': raw_Y_val[i], 'test': raw_Y_test[i]}
-        Y['features'][label] = {'train': feat_Y_train[i], 'val': feat_Y_val[i], 'test': feat_Y_test[i]}
+        Y['raw_data'][label] = {}
+        Y['features'][label] = {}
+        Y['raw_data'][label]['train'], Y['raw_data'][label]['val'], Y['raw_data'][label]['test'] = raw_Y_dict[label].iloc[:train_end], raw_Y_dict[label].iloc[train_end:val_end], raw_Y_dict[label].iloc[val_end:]
+        Y['features'][label]['train'], Y['features'][label]['val'], Y['features'][label]['test'] = feat_Y_dict[label].iloc[:train_end], feat_Y_dict[label].iloc[train_end:val_end], feat_Y_dict[label].iloc[val_end:]
 
-    return X, Y
+    # Split sample weights
+    splitted_sample_weights = None
+    if get_weights:
+        splitted_sample_weights = {}
+        for label, weights_dict in sample_weights.items():
+            for weight_alg, weights in weights_dict.items():
+                splitted_sample_weights[label] = splitted_sample_weights.get(label, {})
+                splitted_sample_weights[label][weight_alg] = {}
+                splitted_sample_weights[label][weight_alg]['train'] = np.array(weights.iloc[:train_end]).reshape(-1)
+                splitted_sample_weights[label][weight_alg]['val'] = np.array(weights.iloc[train_end:val_end]).reshape(-1)
+                splitted_sample_weights[label][weight_alg]['test'] = np.array(weights.iloc[val_end:]).reshape(-1)
+
+    return X, Y, splitted_sample_weights
 
 
-def run_models(config, X, Y):
+def run_models(config, X, Y, sample_weight_dict):
     metrics = {}
     for labeling, data_types in config.items():
         for data_type, models in data_types.items():
-            metrics[labeling] = metrics.get(labeling, {})
-            metrics[labeling][data_type] = test_models(labeling, data_type,
+            metrics[data_type] = metrics.get(data_type, {})
+            metrics[data_type][labeling] = test_models(labeling, data_type,
                                                        X[data_type]['train'], X[data_type]['val'], X[data_type]['test'],
-                                                       Y[data_type]['train'][labeling], Y[data_type]['val'][labeling], Y[data_type]['test'][labeling],
+                                                       Y[data_type][labeling]['train'], Y[data_type][labeling]['val'], Y[data_type][labeling]['test'],
+                                                       sample_weights=sample_weight_dict[labeling]['trend_interval_return'] if sample_weight_dict else None, #TODO use all weight algorithms
                                                        cnn_lstm="cnn_lstm" in models,
                                                        lstm="lstm" in models,
                                                        transformer="transformer" in models)
@@ -178,10 +225,24 @@ def setup_logging(directory):
     return log_file
 
 
-
 def save_results(metrics, direcotry):
     with open(f'{direcotry}/metrics.json', 'w') as file:
-        json.dump(metrics, file, indent=6)
+        json.dump(metrics, file, indent=6, default=model_utils.convert_types)
+
+
+def weighted_evaluation(model, X, Y, sample_weights):
+    threshold = 0.5
+    y_probs = model.predict(X)
+    y_pred = (y_probs > threshold).astype(int)
+
+    bce = tf.keras.losses.BinaryCrossentropy()
+    loss = bce(y_pred, y_probs, sample_weight=sample_weights).numpy()
+    accuracy = accuracy_score(Y, y_pred, sample_weight=sample_weights)
+    precision = precision_score(Y, y_pred, sample_weight=sample_weights)
+    recall = recall_score(Y, y_pred, sample_weight=sample_weights)
+    auc = roc_auc_score(Y, y_probs, sample_weight=sample_weights)
+
+    return [loss, accuracy, precision, recall, auc]
 
 
 if __name__ == '__main__':
@@ -191,7 +252,7 @@ if __name__ == '__main__':
     config = load_config(args.config_path)
     dir_path = args.directory
 
-    X, Y = prepare_data()
-    metrics = run_models(config, X, Y)
+    X, Y, sample_weight_dict = prepare_data(args.use_sample_weights)
+    metrics = run_models(config, X, Y, sample_weight_dict)
 
     save_results(metrics, args.directory)

@@ -1,0 +1,58 @@
+{
+    "best_trial": {
+        "trial_num": 89,
+        "hyperparameters": {
+            "lstm_units_0": 279,
+            "num_lstm_layers": 3,
+            "dense_units": 107,
+            "dropout_rate_dense": 0.0015420238740164742,
+            "learning_rate": 0.0004979718161653927,
+            "decay_steps": 7854,
+            "decay_rate": 0.8249524461059771,
+            "lstm_units_1": 470,
+            "lstm_units_2": 81,
+            "lstm_units_3": 41
+        },
+        "score": 0.5711644113063812,
+        "metrics": {
+            "train_loss": 0.6954988181591034,
+            "val_loss": 0.710459303855896,
+            "train_binary_accuracy": 0.5052465558052063,
+            "val_binary_accuracy": 0.4903726726770401,
+            "train_precision": 0.4910363554954529,
+            "val_precision": 0.4195442497730255,
+            "train_recall": 0.47596158981323244,
+            "val_recall": 0.5006235470995307,
+            "train_auc": 0.5302406877279282,
+            "val_auc": 0.5711644113063812
+        }
+    },
+    "worst_trial": {
+        "trial_num": 2,
+        "hyperparameters": {
+            "lstm_units_0": 158,
+            "num_lstm_layers": 3,
+            "dense_units": 75,
+            "dropout_rate_dense": 0.14984409298418874,
+            "learning_rate": 0.021774678931686813,
+            "decay_steps": 3627,
+            "decay_rate": 0.8458494345224377,
+            "lstm_units_1": 170,
+            "lstm_units_2": 182,
+            "lstm_units_3": 234
+        },
+        "score": 0.5095230460166931,
+        "metrics": {
+            "train_loss": 0.7090284764766693,
+            "val_loss": 0.7029984951019287,
+            "train_binary_accuracy": 0.41774603724479675,
+            "val_binary_accuracy": 0.4152173936367035,
+            "train_precision": 0.37996291518211367,
+            "val_precision": 0.25915274024009705,
+            "train_recall": 0.25342105149757116,
+            "val_recall": 0.21853512525558472,
+            "train_auc": 0.5125507473945617,
+            "val_auc": 0.5095230460166931
+        }
+    }
+}
