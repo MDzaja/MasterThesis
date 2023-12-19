@@ -81,14 +81,10 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
         model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
         early_stopping = EarlyStopping(monitor=model_utils.get_default_monitor_metric(), patience=config['patience'])
         print(f"Training {model_name} on {data_type} data with {labeling} labeling...", flush=True)
-        # print("X_train shape:", _X_train.shape, flush=True)
-        # print("Y_train shape:", Y_train.shape, flush=True)
-        # print("Sample weights (train) shape:", sample_weights['train'].shape if sample_weights else "No sample weights", flush=True)
-        # print("first 5 weights:", sample_weights['train'][:5] if sample_weights else "No sample weights", flush=True)
-        # print("last 5 weights:", sample_weights['train'][-5:] if sample_weights else "No sample weights", flush=True)
+        # TODO ubacit ModelCheckpoint za spremanje najboljeg modela/tezina, ubacit weighted metrics u compile
         model.fit(_X_train, Y_train, epochs=config['epochs'], validation_data=(_X_val, Y_val), 
                   batch_size=config['batch_size'], class_weight=class_weight_dict, callbacks=[early_stopping],
-                  #sample_weight=sample_weights['train'] if sample_weights else None,
+                  sample_weight=sample_weights['train'] if sample_weights else None,
                   verbose=0)
         print(f"Finished training {model_name} on {data_type} data with {labeling} labeling.", flush=True)
 
