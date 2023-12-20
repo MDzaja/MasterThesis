@@ -34,7 +34,7 @@ def build_model_raw(n_length, n_features):
 
     model.compile(optimizer=opt,
                   loss=model_utils.get_default_loss(),
-                  metrics=model_utils.get_default_metrics())
+                  weighted_metrics=model_utils.get_default_metrics())
 
     return model
 
@@ -61,7 +61,7 @@ def build_model_feat(n_length, n_features):
 
     model.compile(optimizer=opt,
                   loss=model_utils.get_default_loss(),
-                  metrics=model_utils.get_default_metrics())
+                  weighted_metrics=model_utils.get_default_metrics())
 
     return model
 

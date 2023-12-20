@@ -4,7 +4,6 @@ import sys
 sys.path.insert(0, '../../')
 
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
@@ -13,7 +12,6 @@ import argparse
 import os
 import pickle
 import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 import numpy as np
 
 from models import LSTM as lstm_impl
@@ -39,6 +37,33 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
     classes = np.unique(Y_train)
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train)
     class_weight_dict = dict(zip(classes, class_weights))
+
+    # If sample weights are None, define a sample weights dictionary with all weights set to 1
+    if sample_weights is None:
+        sample_weights = {
+            'train': np.ones(Y_train.shape[0]),
+            'val': np.ones(Y_val.shape[0]),
+            'test': np.ones(Y_test.shape[0])
+        }
+
+    # Adjust sample weights by mutiplying with class weights, store new weights in a "class_sample_weights"
+    class_sample_weights = {
+        'train': np.zeros_like(sample_weights['train']),
+        'val': np.zeros_like(sample_weights['val']),
+        'test': np.zeros_like(sample_weights['test'])
+    }
+    for dataset in ['train', 'val', 'test']:
+        for i in range(len(sample_weights[dataset])):
+            # Assuming Y_train, Y_val, Y_test are numpy arrays containing the class labels for each sample
+            if dataset == 'train':
+                label = Y_train[i]
+            elif dataset == 'val':
+                label = Y_val[i]
+            else: # dataset == 'test'
+                label = Y_test[i]
+
+            # Multiply the sample weight by the corresponding class weight
+            class_sample_weights[dataset][i] = sample_weights[dataset][i] * class_weight_dict[label]
 
     model_configs = {}
     if cnn_lstm:
@@ -77,26 +102,25 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
             _X_val = _X_val.reshape((_X_val.shape[0], n_steps, n_length, n_features))
             _X_test = _X_test.reshape((_X_test.shape[0], n_steps, n_length, n_features))
 
-        # Build and train the model
-        model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
+
         early_stopping = EarlyStopping(monitor=model_utils.get_default_monitor_metric(), patience=config['patience'])
+        train_data = tf.data.Dataset.from_tensor_slices((_X_train, Y_train, class_sample_weights['train'])).batch(config['batch_size'])
+        val_data = tf.data.Dataset.from_tensor_slices((_X_val, Y_val, class_sample_weights['val'])).batch(config['batch_size'])
+
+        # Build and train the model
         print(f"Training {model_name} on {data_type} data with {labeling} labeling...", flush=True)
-        # TODO ubacit ModelCheckpoint za spremanje najboljeg modela/tezina, ubacit weighted metrics u compile
-        model.fit(_X_train, Y_train, epochs=config['epochs'], validation_data=(_X_val, Y_val), 
-                  batch_size=config['batch_size'], class_weight=class_weight_dict, callbacks=[early_stopping],
-                  sample_weight=sample_weights['train'] if sample_weights else None,
+        model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
+        model.fit(train_data, 
+                  epochs=config['epochs'], 
+                  validation_data=val_data, 
+                  callbacks=[early_stopping],
                   verbose=0)
         print(f"Finished training {model_name} on {data_type} data with {labeling} labeling.", flush=True)
 
         # Evaluate the model
-        if sample_weights is None:
-            train_eval = model.evaluate(_X_train, Y_train)
-            val_eval = model.evaluate(_X_val, Y_val)
-            test_eval = model.evaluate(_X_test, Y_test)
-        else:
-            train_eval = weighted_evaluation(model, _X_train, Y_train, sample_weights['train'])
-            val_eval = weighted_evaluation(model, _X_val, Y_val, sample_weights['val'])
-            test_eval = weighted_evaluation(model, _X_test, Y_test, sample_weights['test'])
+        train_eval = model.evaluate(_X_train, Y_train, sample_weight=sample_weights['train'])
+        val_eval = model.evaluate(_X_val, Y_val, sample_weight=sample_weights['val'])
+        test_eval = model.evaluate(_X_test, Y_test, sample_weight=sample_weights['test'])
 
         # Save the model
         if not os.path.exists(f"{dir_path}/saved_models"):
@@ -179,8 +203,8 @@ def prepare_data(get_weights=False):
     for i, label in enumerate(labels_dict.keys()):
         Y['raw_data'][label] = {}
         Y['features'][label] = {}
-        Y['raw_data'][label]['train'], Y['raw_data'][label]['val'], Y['raw_data'][label]['test'] = raw_Y_dict[label].iloc[:train_end], raw_Y_dict[label].iloc[train_end:val_end], raw_Y_dict[label].iloc[val_end:]
-        Y['features'][label]['train'], Y['features'][label]['val'], Y['features'][label]['test'] = feat_Y_dict[label].iloc[:train_end], feat_Y_dict[label].iloc[train_end:val_end], feat_Y_dict[label].iloc[val_end:]
+        Y['raw_data'][label]['train'], Y['raw_data'][label]['val'], Y['raw_data'][label]['test'] = np.array(raw_Y_dict[label].iloc[:train_end]), np.array(raw_Y_dict[label].iloc[train_end:val_end]), np.array(raw_Y_dict[label].iloc[val_end:])
+        Y['features'][label]['train'], Y['features'][label]['val'], Y['features'][label]['test'] = np.array(feat_Y_dict[label].iloc[:train_end]), np.array(feat_Y_dict[label].iloc[train_end:val_end]), np.array(feat_Y_dict[label].iloc[val_end:])
 
     # Split sample weights
     splitted_sample_weights = None
@@ -224,21 +248,6 @@ def setup_logging(directory):
 def save_results(metrics, direcotry):
     with open(f'{direcotry}/metrics.json', 'w') as file:
         json.dump(metrics, file, indent=6, default=model_utils.convert_types)
-
-
-def weighted_evaluation(model, X, Y, sample_weights):
-    threshold = 0.5
-    y_probs = model.predict(X)
-    y_pred = (y_probs > threshold).astype(int)
-
-    bce = tf.keras.losses.BinaryCrossentropy()
-    loss = bce(y_pred, y_probs, sample_weight=sample_weights).numpy()
-    accuracy = accuracy_score(Y, y_pred, sample_weight=sample_weights)
-    precision = precision_score(Y, y_pred, sample_weight=sample_weights)
-    recall = recall_score(Y, y_pred, sample_weight=sample_weights)
-    auc = roc_auc_score(Y, y_probs, sample_weight=sample_weights)
-
-    return [loss, accuracy, precision, recall, auc]
 
 
 if __name__ == '__main__':
