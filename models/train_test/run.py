@@ -32,38 +32,18 @@ def parse_args():
     return args
 
 
-def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_test, sample_weights=None, cnn_lstm=False, lstm=False, transformer=False):
-    # Compute class weights
-    classes = np.unique(Y_train)
-    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train)
-    class_weight_dict = dict(zip(classes, class_weights))
-
-    # If sample weights are None, define a sample weights dictionary with all weights set to 1
+def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_test, 
+                sample_weights=None, cnn_lstm=False, lstm=False, transformer=False):
     if sample_weights is None:
-        sample_weights = {
-            'train': np.ones(Y_train.shape[0]),
-            'val': np.ones(Y_val.shape[0]),
-            'test': np.ones(Y_test.shape[0])
-        }
+        sample_weights = {}
+        sample_weights['train'] = np.ones(Y_train.shape[0])
+        sample_weights['val'] = np.ones(Y_val.shape[0])
+        sample_weights['test'] = np.ones(Y_test.shape[0])
 
-    # Adjust sample weights by mutiplying with class weights, store new weights in a "class_sample_weights"
-    class_sample_weights = {
-        'train': np.zeros_like(sample_weights['train']),
-        'val': np.zeros_like(sample_weights['val']),
-        'test': np.zeros_like(sample_weights['test'])
-    }
-    for dataset in ['train', 'val', 'test']:
-        for i in range(len(sample_weights[dataset])):
-            # Assuming Y_train, Y_val, Y_test are numpy arrays containing the class labels for each sample
-            if dataset == 'train':
-                label = Y_train[i]
-            elif dataset == 'val':
-                label = Y_val[i]
-            else: # dataset == 'test'
-                label = Y_test[i]
-
-            # Multiply the sample weight by the corresponding class weight
-            class_sample_weights[dataset][i] = sample_weights[dataset][i] * class_weight_dict[label]
+    class_weight_dict = model_utils.calculate_class_weight_dict(Y_train)
+    adjusted_sample_weights = {}
+    adjusted_sample_weights['train'] = model_utils.adjust_sample_weights(Y_train, class_weight_dict, sample_weights['train'])
+    adjusted_sample_weights['val'] = model_utils.adjust_sample_weights(Y_val, class_weight_dict, sample_weights['val'])
 
     model_configs = {}
     if cnn_lstm:
@@ -102,30 +82,22 @@ def test_models(labeling, data_type, X_train, X_val, X_test, Y_train, Y_val, Y_t
             _X_val = _X_val.reshape((_X_val.shape[0], n_steps, n_length, n_features))
             _X_test = _X_test.reshape((_X_test.shape[0], n_steps, n_length, n_features))
 
-
-        early_stopping = EarlyStopping(monitor=model_utils.get_default_monitor_metric(), patience=config['patience'])
-        train_data = tf.data.Dataset.from_tensor_slices((_X_train, Y_train, class_sample_weights['train'])).batch(config['batch_size'])
-        val_data = tf.data.Dataset.from_tensor_slices((_X_val, Y_val, class_sample_weights['val'])).batch(config['batch_size'])
-
-        # Build and train the model
         print(f"Training {model_name} on {data_type} data with {labeling} labeling...", flush=True)
         model = config['build_func'](_X_train.shape[-2], _X_train.shape[-1])
-        model.fit(train_data, 
-                  epochs=config['epochs'], 
-                  validation_data=val_data, 
-                  callbacks=[early_stopping],
-                  verbose=0)
+        model = model_utils.train_model(model, _X_train, Y_train, _X_val, Y_val, 
+                                        adjusted_sample_weights['train'], adjusted_sample_weights['val'],
+                                        config['batch_size'], config['epochs'], config['patience'], dir_path)
         print(f"Finished training {model_name} on {data_type} data with {labeling} labeling.", flush=True)
+
+        # Save the model
+        # if not os.path.exists(f"{dir_path}/saved_models"):
+        #     os.makedirs(f"{dir_path}/saved_models")
+        # model.save(f"{dir_path}/saved_models/{data_type}-{labeling}-{model_name}.keras")
 
         # Evaluate the model
         train_eval = model.evaluate(_X_train, Y_train, sample_weight=sample_weights['train'])
         val_eval = model.evaluate(_X_val, Y_val, sample_weight=sample_weights['val'])
         test_eval = model.evaluate(_X_test, Y_test, sample_weight=sample_weights['test'])
-
-        # Save the model
-        if not os.path.exists(f"{dir_path}/saved_models"):
-            os.makedirs(f"{dir_path}/saved_models")
-        model.save(f"{dir_path}/saved_models/{data_type}-{labeling}-{model_name}.keras")
 
         # Store results
         results[model_name] = {

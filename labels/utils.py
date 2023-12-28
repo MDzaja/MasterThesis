@@ -34,7 +34,7 @@ def plot_labels(title: str, prices: pd.Series, labels: pd.Series):
     ax1.set_title(title)
     ax1.tick_params(axis='y', labelcolor='black')
     # Format x-axis to only show time
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M', tz=None))
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y', tz=None))
 
     # Create the second axis
     ax2 = ax1.twinx()

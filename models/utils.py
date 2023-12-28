@@ -11,6 +11,7 @@ from functools import partial
 from skopt import gp_minimize
 from skopt.callbacks import CheckpointSaver, VerboseCallback
 from skopt import load
+from tensorflow.keras.models import Sequential
 import gc
 from memory_profiler import profile
 import tensorflow as tf
@@ -28,6 +29,7 @@ import psutil
 from labels import oracle
 
 
+# TODO out of date
 def get_ft_n_Y(window_size=60):
     features_df = pd.read_csv('../features/test_features.csv', index_col=0)
 
@@ -43,6 +45,7 @@ def get_ft_n_Y(window_size=60):
     return X, Y
 
 
+# TODO out of date
 def get_aligned_raw_feat_lbl(feat_csv_path, lbl_pkl_path):
     ticker_symbol = 'GC=F'
     start_date = '2000-01-01'
@@ -90,19 +93,6 @@ def get_X(data, window_size):
 
 def get_Y(labels: pd.Series, window_size) -> pd.Series:
     return labels[window_size:]
-
-
-def train_model(build_model_func, X_train, Y_train, X_val, Y_val, early_stopping_patience=20, epochs=100):
-    # Compute class weights
-    classes = np.unique(Y_train)
-    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train.reshape(-1))
-    class_weight_dict = dict(zip(classes, class_weights))
-
-    early_stopping = EarlyStopping(monitor=get_default_monitor_metric(), patience=early_stopping_patience)
-
-    model = build_model_func(X_train.shape[-2], X_train.shape[-1])
-
-    model.fit(X_train, Y_train, epochs=epochs, validation_data=(X_val, Y_val), batch_size=64, class_weight=class_weight_dict, callbacks=[early_stopping])
 
 
 # Convert NumPy types to Python types for JSON serialization
@@ -206,6 +196,65 @@ def get_memory_usage():
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 * 1024)  # Convert to MB
 
+
 def restart_script():
     print("Restarting script...")
     os.execl(sys.executable, sys.executable, *sys.argv)
+
+
+def calculate_class_weight_dict(y_train):
+    classes = np.unique(y_train)
+    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y_train)
+    class_weight_dict = dict(zip(classes, class_weights))
+    return class_weight_dict
+
+
+def adjust_sample_weights(y_labels, class_weight_dict, sample_weights):
+    # Initialize adjusted weights with zeros
+    adjusted_weights = np.zeros_like(sample_weights)
+
+    # Adjust sample weights by multiplying with class weights
+    for i, label in enumerate(y_labels):
+        adjusted_weights[i] = sample_weights[i] * class_weight_dict[label]
+
+    return adjusted_weights
+
+
+def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weights,
+                batch_size, epochs, early_stopping_patience, directory) -> Sequential:
+    # Early stopping callback
+    early_stopping = EarlyStopping(
+        monitor=get_default_monitor_metric(), 
+        patience=early_stopping_patience,
+        mode='max'
+    )
+
+    # Model checkpoint callback
+    checkpoint_path = f'{directory}/tmp_model.keras'
+    if os.path.exists(checkpoint_path):
+        os.remove(checkpoint_path)
+    checkpoint = ModelCheckpoint(
+        filepath=checkpoint_path,
+        monitor=get_default_monitor_metric(),
+        save_best_only=True,
+        save_weights_only=True,
+        mode='max'
+    )
+
+    # Prepare the data
+    train_data = tf.data.Dataset.from_tensor_slices((X_train, Y_train, train_weights)).batch(batch_size).cache()
+    val_data = tf.data.Dataset.from_tensor_slices((X_val, Y_val, val_weights)).batch(batch_size).cache()
+
+    # Train the model
+    model.fit(train_data, 
+                epochs=epochs, 
+                validation_data=val_data, 
+                callbacks=[early_stopping, checkpoint],
+                verbose=0)
+    
+    # Load the best weights
+    model.load_weights(checkpoint_path)
+    os.remove(checkpoint_path)
+
+    return model
+

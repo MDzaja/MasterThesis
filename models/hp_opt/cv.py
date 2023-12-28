@@ -91,55 +91,28 @@ def custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch
 
         X_train, X_val = X[train_index], X[val_index]
         Y_train, Y_val = Y[train_index], Y[val_index]
-        train_dataset = (tf.data.Dataset.from_tensor_slices((X_train, Y_train))
-                            .batch(batch_size)
-                            .cache() # TODO probably remove this
-                            .prefetch(tf.data.AUTOTUNE))
-        val_dataset = (tf.data.Dataset.from_tensor_slices((X_val, Y_val))
-                            .batch(batch_size)
-                            .cache() # TODO probably remove this
-                            .prefetch(tf.data.AUTOTUNE))
 
-        # Compute class weights
-        classes = np.unique(Y_train)
-        class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=Y_train)
-        class_weight_dict = dict(zip(classes.astype(int), class_weights))
-
-        # Early stopping callback
-        early_stopping = EarlyStopping(
-            monitor=model_utils.get_default_monitor_metric(), 
-            patience=early_stopping_patience,
-            mode='max'
-        )
-
-        # Configure ModelCheckpoint
-        checkpoint = ModelCheckpoint(
-            filepath=f'{directory}/tmp_model.keras',
-            monitor=model_utils.get_default_monitor_metric(),
-            save_best_only=True,
-            save_weights_only=True,
-            mode='max'
-        )
+        if sample_weights is None:
+            sample_weights = {}
+            sample_weights['train'] = np.ones(Y_train.shape[0])
+            sample_weights['val'] = np.ones(Y_val.shape[0])
+        class_weight_dict = model_utils.calculate_class_weight_dict(Y_train)
+        adjusted_sample_weights = {}
+        adjusted_sample_weights['train'] = model_utils.adjust_sample_weights(Y_train, class_weight_dict, sample_weights['train'])
+        adjusted_sample_weights['val'] = model_utils.adjust_sample_weights(Y_val, class_weight_dict, sample_weights['val'])
 
         model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
-
         try:
-            model.fit(
-                train_dataset,
-                validation_data=val_dataset,
-                epochs=epochs,
-                class_weight=class_weight_dict,
-                callbacks=[early_stopping, checkpoint],
-                verbose=0
-            )
+            model = model_utils.train_model(model, X_train, Y_train, X_val, Y_val, 
+                                        adjusted_sample_weights['train'], adjusted_sample_weights['val'],
+                                        batch_size, epochs, early_stopping_patience, directory)
         except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
             print("Caught TensorFlow InternalError:", e)
             model_utils.restart_script()
 
-        # Load the best weights and evaluate the model
-        model.load_weights(f'{directory}/tmp_model.keras')
-        train_metrics = model.evaluate(X_train, Y_train, verbose=0)
-        val_metrics = model.evaluate(X_val, Y_val, verbose=0)
+        # Evaluate the model
+        train_metrics = model.evaluate(X_train, Y_train, sample_weight=adjusted_sample_weights['train'], verbose=0)
+        val_metrics = model.evaluate(X_val, Y_val, sample_weight=adjusted_sample_weights['val'], verbose=0)
 
         # Update the metrics dictionary
         for i, metric_name in enumerate(model.metrics_names):
@@ -151,17 +124,10 @@ def custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch
         tf.keras.backend.clear_session()
         gc.collect()
 
-        # Remove the temporary model file
-        os.remove(f'{directory}/tmp_model.keras')
-
         mem_after = model_utils.get_memory_usage() #TODO
         with open(memory_log_path, "a") as mem_log:
             mem_log.write(f"Memory usage after training split: {mem_after:.2f} MB\n")
             mem_log.write(f"Memory usage difference: {mem_after - mem_before:.2f} MB\n\n")
-
-    # Clear the memory again #TODO
-    del tscv
-    gc.collect()
 
     # Calculate and return mean metrics
     mean_metrics = {metric: np.mean(values) for metric, values in all_metrics.items()}
