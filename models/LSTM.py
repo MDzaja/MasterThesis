@@ -5,96 +5,54 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from skopt.space import Integer, Real, Categorical
+from skopt.space import Integer, Real
 
 from models import utils as model_utils
 
 
-def build_model_raw(window_size, n_features):
-    model = Sequential()
-    model.add(Bidirectional(
-        LSTM(279,
-             return_sequences=True,
-             input_shape=(window_size, n_features)
-             )
-    ))
-    model.add(Bidirectional(LSTM(470, return_sequences=True)))
-    model.add(Bidirectional(LSTM(81, return_sequences=False)))
-    model.add(Dense(units=107, activation='relu'))
-    model.add(Dropout(rate=0.001542))
-    model.add(Dense(1, activation='sigmoid'))
-
-    lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0004979,
-        decay_steps=7854,
-        decay_rate=0.8249)
-
-    opt = Adam(learning_rate=lr_schedule)
-
-    model.compile(optimizer=opt,
-                  loss=model_utils.get_default_loss(),
-                  weighted_metrics=model_utils.get_default_metrics())
-
-    return model
+# Constants for parameter keys
+LSTM_UNITS_0 = 'lstm_units_0'
+NUM_LSTM_LAYERS = 'num_lstm_layers'
+DENSE_UNITS = 'dense_units'
+DROPOUT_RATE_DENSE = 'dropout_rate_dense'
+LEARNING_RATE = 'learning_rate'
+DECAY_STEPS = 'decay_steps'
+DECAY_RATE = 'decay_rate'
+LSTM_UNITS_1 = 'lstm_units_1'
+LSTM_UNITS_2 = 'lstm_units_2'
+LSTM_UNITS_3 = 'lstm_units_3'
 
 
-def build_model_feat(window_size, n_features):
-    model = Sequential()
-    model.add(Bidirectional(
-        LSTM(258,
-             return_sequences=True,
-             input_shape=(window_size, n_features)
-             )
-    ))
-    model.add(Bidirectional(LSTM(34, return_sequences=False)))
-    model.add(Dense(units=37, activation='relu'))
-    model.add(Dropout(rate=0.49328))
-    model.add(Dense(1, activation='sigmoid'))
-
-    lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.000619,
-        decay_steps=5161,
-        decay_rate=0.85519)
-
-    opt = Adam(learning_rate=lr_schedule)
-
-    model.compile(optimizer=opt,
-                  loss=model_utils.get_default_loss(),
-                  weighted_metrics=model_utils.get_default_metrics())
-
-    return model
-
-
-def build_model_hp(hp, window_size, n_features):
+def build_model(params, window_size, n_features):
     model = Sequential()
 
-    # Add the first LSTM layer with input_shape
-    model.add(Bidirectional(LSTM(
-        units=hp.Int('units1', min_value=32, max_value=512, step=32),
-        return_sequences=True,
-        input_shape=(window_size, n_features))))
+    # First LSTM layer
+    model.add(Bidirectional(LSTM(units=params[LSTM_UNITS_0], 
+                                 return_sequences=params[NUM_LSTM_LAYERS] > 1, 
+                                 input_shape=(window_size, n_features))))
 
     # Additional LSTM layers
-    for i in range(hp.Int('num_add_lstm_layers', 1, 3)):
-        model.add(Bidirectional(LSTM(
-            units=hp.Int(f'lstm_units_{i}', min_value=32, max_value=512, step=32),
-            return_sequences=(i < hp.get('num_add_lstm_layers') - 1))))
+    for i in range(1, params[NUM_LSTM_LAYERS]):
+        lstm_units_key = f'LSTM_UNITS_{i}'
+        model.add(Bidirectional(LSTM(units=params.get(lstm_units_key), 
+                                     return_sequences=(i < params[NUM_LSTM_LAYERS] - 1))))
 
-    model.add(Dense(units=hp.Int('dense_units', min_value=32, max_value=256, step=32), activation='relu'))
-    model.add(Dropout(rate=hp.Float('dropout_rate_dense', min_value=0, max_value=0.5, step=0.1)))
+    # Dense and Dropout layers
+    model.add(Dense(units=params[DENSE_UNITS], activation='relu'))
+    model.add(Dropout(rate=params[DROPOUT_RATE_DENSE]))
     model.add(Dense(1, activation='sigmoid'))
 
-    lr_schedule = ExponentialDecay(
-        initial_learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=0.1, sampling='log'),
-        decay_steps=hp.Int('decay_steps', min_value=1000, max_value=10000, step=1000),
-        decay_rate=hp.Float('decay_rate', min_value=0.8, max_value=0.99))
-
+    # Learning rate schedule
+    lr_schedule = ExponentialDecay(initial_learning_rate=params[LEARNING_RATE], 
+                                   decay_steps=params[DECAY_STEPS], 
+                                   decay_rate=params[DECAY_RATE])
+    # Optimizer
     opt = Adam(learning_rate=lr_schedule)
 
     # Compile the model
-    model.compile(optimizer=opt,
-        loss=model_utils.get_default_loss(),
-        metrics=model_utils.get_default_metrics())
+    model.compile(optimizer=opt, 
+                  loss=model_utils.get_default_loss(), 
+                  weighted_metrics=model_utils.get_default_metrics())
 
     return model
 
@@ -136,16 +94,15 @@ def build_model_gp(params, window_size, n_features):
 
 def define_search_space():
     return [
-        Integer(32, 512, name='lstm_units_0'),
-        Integer(1, 3, name='num_lstm_layers'),
-        Integer(32, 256, name='dense_units'),
-        Real(0.0, 0.5, name='dropout_rate_dense'),
-        Real(1e-4, 0.1, name='learning_rate', prior='log-uniform'),
-        Integer(1000, 10000, name='decay_steps'),
-        Real(0.8, 0.99, name='decay_rate'),
+        Integer(32, 512, name=LSTM_UNITS_0),
+        Integer(1, 3, name=NUM_LSTM_LAYERS),
+        Integer(32, 256, name=DENSE_UNITS),
+        Real(0.0, 0.5, name=DROPOUT_RATE_DENSE),
+        Real(1e-4, 0.1, name=LEARNING_RATE, prior='log-uniform'),
+        Integer(1000, 10000, name=DECAY_STEPS),
+        Real(0.8, 0.99, name=DECAY_RATE),
         # Layer-specific hyperparameters
-        Integer(32, 512, name='lstm_units_1'),
-        Integer(32, 512, name='lstm_units_2'),
-        Integer(32, 512, name='lstm_units_3')
+        Integer(32, 512, name=LSTM_UNITS_1),
+        Integer(32, 512, name=LSTM_UNITS_2),
+        Integer(32, 512, name=LSTM_UNITS_3)
     ]
-

@@ -11,117 +11,78 @@ from skopt.space import Integer, Real, Categorical
 from models import utils as model_utils
 
 
-def build_model_raw(n_length, n_features):
-
-    model = Sequential()
-    model.add(TimeDistributed(Conv1D(filters=47, kernel_size=5, activation='relu'), input_shape=(None, n_length, n_features)))
-    model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
-    model.add(TimeDistributed(Dropout(0.0325)))
-    model.add(TimeDistributed(Flatten()))
-    model.add(Bidirectional(LSTM(481, return_sequences=True)))
-    model.add(Bidirectional(LSTM(490, return_sequences=True)))
-    model.add(Bidirectional(LSTM(494, return_sequences=False)))
-    model.add(Dropout(0.0053))
-    model.add(Dense(218, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
-
-    lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.0008095,
-        decay_steps=3287,
-        decay_rate=0.97)
-
-    opt = Adam(learning_rate=lr_schedule)
-
-    model.compile(optimizer=opt,
-                  loss=model_utils.get_default_loss(),
-                  weighted_metrics=model_utils.get_default_metrics())
-
-    return model
+# Constants for parameter keys
+CONV_FILTERS_0 = 'conv_filters_0'
+CONV_KERNEL_SIZE_0 = 'conv_kernel_size_0'
+NUM_CONV_LAYERS = 'num_conv_layers'
+CONV_POOL_SIZE = 'conv_pool_size'
+CONV_DROPOUT = 'conv_dropout'
+NUM_LSTM_LAYERS = 'num_lstm_layers'
+LSTM_DROPOUT = 'lstm_dropout'
+DENSE_UNITS = 'dense_units'
+LEARNING_RATE = 'learning_rate'
+DECAY_STEPS = 'decay_steps'
+DECAY_RATE = 'decay_rate'
+CONV_FILTERS_1 = 'conv_filters_1'
+CONV_KERNEL_SIZE_1 = 'conv_kernel_size_1'
+CONV_FILTERS_2 = 'conv_filters_2'
+CONV_KERNEL_SIZE_2 = 'conv_kernel_size_2'
+LSTM_UNITS_0 = 'lstm_units_0'
+LSTM_UNITS_1 = 'lstm_units_1'
+LSTM_UNITS_2 = 'lstm_units_2'
 
 
-def build_model_feat(n_length, n_features):
-
-    model = Sequential()
-    model.add(TimeDistributed(Conv1D(filters=78, kernel_size=5, activation='relu'), input_shape=(None, n_length, n_features)))
-    model.add(TimeDistributed(Conv1D(filters=93, kernel_size=5, activation='relu', padding='same')))
-    model.add(TimeDistributed(MaxPooling1D(pool_size=3)))
-    model.add(TimeDistributed(Dropout(0.1429)))
-    model.add(TimeDistributed(Flatten()))
-    model.add(Bidirectional(LSTM(420, return_sequences=False)))
-    model.add(Dropout(0.3032))
-    model.add(Dense(49, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
-
-    lr_schedule = ExponentialDecay(
-        initial_learning_rate=0.00357,
-        decay_steps=4538,
-        decay_rate=0.80068)
-
-    opt = Adam(learning_rate=lr_schedule)
-
-    model.compile(optimizer=opt,
-                  loss=model_utils.get_default_loss(),
-                  weighted_metrics=model_utils.get_default_metrics())
-
-    return model
-
-
-def build_model_hp(hp, n_length, n_features):
+def build_model(params, n_length, n_features):
     model = Sequential()
 
-    # Add the first Conv1D layer with input_shape
-    model.add(TimeDistributed(Conv1D(
-        filters=hp.Int('first_conv_filters', min_value=32, max_value=128, step=32),
-        kernel_size=hp.Choice('first_conv_kernel_size', [3, 5]),
-        activation='relu'),
-        input_shape=(None, n_length, n_features)
-    ))
-
-    # Additional Conv1D layers defined in a loop
-    for i in range(1, hp.Int('num_conv_layers', 1, 3)):
-        model.add(TimeDistributed(Conv1D(
-            filters=hp.Int(f'conv_filters_{i}', min_value=32, max_value=128, step=32),
-            kernel_size=hp.Choice(f'conv_kernel_size_{i}', [3, 5]),
-            activation='relu')
-        ))
-
-    # MaxPooling1D and Dropout after the last Conv1D layer
-    model.add(TimeDistributed(MaxPooling1D(pool_size=hp.Choice('final_pool_size', [2, 3]))))
-    model.add(TimeDistributed(Dropout(rate=hp.Float('final_conv_dropout', min_value=0, max_value=0.5, step=0.1))))
-
-    # Flatten the output of the convolutional layers
+    # Conv1D and MaxPooling1D layers
+    for i in range(params[NUM_CONV_LAYERS]):
+        filters_key = f'CONV_FILTERS_{i}'
+        kernel_size_key = f'CONV_KERNEL_SIZE_{i}'
+        if i == 0:
+            model.add(TimeDistributed(Conv1D(filters=params.get(filters_key), 
+                                            kernel_size=params.get(kernel_size_key), 
+                                            activation='relu'), 
+                                    input_shape=(None, n_length, n_features)))
+        else:
+            model.add(TimeDistributed(Conv1D(filters=params.get(filters_key), 
+                                            kernel_size=params.get(kernel_size_key), 
+                                            activation='relu', padding='same')))
+            
+    model.add(TimeDistributed(MaxPooling1D(pool_size=params[CONV_POOL_SIZE])))
+    model.add(TimeDistributed(Dropout(params[CONV_DROPOUT])))
     model.add(TimeDistributed(Flatten()))
 
     # LSTM layers
-    for i in range(hp.Int('num_lstm_layers', 1, 3)):
-        model.add(Bidirectional(LSTM(
-            units=hp.Int(f'lstm_units_{i}', min_value=32, max_value=512, step=32),
-            return_sequences=(i < hp.get('num_lstm_layers') - 1))))
-            
-    # Dropout after the last LSTM layer
-    model.add(Dropout(rate=hp.Float('lstm_dropout', min_value=0, max_value=0.5, step=0.1)))        
+    for i in range(params[NUM_LSTM_LAYERS]):
+        lstm_units_key = f'LSTM_UNITS_{i}'
+        model.add(Bidirectional(LSTM(units=params.get(lstm_units_key), 
+                                     return_sequences=(i < params[NUM_LSTM_LAYERS] - 1))))
+
+    # Dropout after LSTM layers
+    model.add(Dropout(params[LSTM_DROPOUT]))
 
     # Dense layer
-    model.add(Dense(units=hp.Int('dense_units', min_value=32, max_value=256, step=32), activation='relu'))
+    model.add(Dense(params[DENSE_UNITS], activation='relu'))
     
     # Output layer
     model.add(Dense(1, activation='sigmoid'))
 
     # Learning rate schedule
-    lr_schedule = ExponentialDecay(
-        initial_learning_rate=hp.Float('learning_rate', min_value=1e-4, max_value=0.1, sampling='log'),
-        decay_steps=hp.Int('decay_steps', min_value=1000, max_value=10000, step=1000),
-        decay_rate=hp.Float('decay_rate', min_value=0.8, max_value=0.99))
+    lr_schedule = ExponentialDecay(initial_learning_rate=params[LEARNING_RATE], 
+                                   decay_steps=params[DECAY_STEPS], 
+                                   decay_rate=params[DECAY_RATE])
 
     # Optimizer
     opt = Adam(learning_rate=lr_schedule)
 
     # Compile the model
-    model.compile(optimizer=opt,
-                  loss=model_utils.get_default_loss(),
-                  metrics=model_utils.get_default_metrics())
+    model.compile(optimizer=opt, 
+                  loss=model_utils.get_default_loss(), 
+                  weighted_metrics=model_utils.get_default_metrics())
 
     return model
+
 
 def build_model_gp(params, n_length, n_features):
     # Unpack parameters
@@ -185,23 +146,23 @@ def build_model_gp(params, n_length, n_features):
 
 def define_search_space():
     return [
-        Integer(32, 128, name='conv_filters_0'),
-        Categorical([3, 5], name='conv_kernel_size_0'),
-        Integer(1, 3, name='num_conv_layers'),
-        Categorical([2, 3], name='conv_pool_size'),
-        Real(0.0, 0.5, name='conv_dropout'),
-        Integer(1, 3, name='num_lstm_layers'),
-        Real(0.0, 0.5, name='lstm_dropout'),
-        Integer(32, 256, name='dense_units'),
-        Real(1e-4, 0.1, name='learning_rate', prior='log-uniform'),
-        Integer(1000, 10000, name='decay_steps'),
-        Real(0.8, 0.99, name='decay_rate'),
+        Integer(32, 128, name=CONV_FILTERS_0),
+        Categorical([3, 5], name=CONV_KERNEL_SIZE_0),
+        Integer(1, 3, name=NUM_CONV_LAYERS),
+        Categorical([2, 3], name=CONV_POOL_SIZE),
+        Real(0.0, 0.5, name=CONV_DROPOUT),
+        Integer(1, 3, name=NUM_LSTM_LAYERS),
+        Real(0.0, 0.5, name=LSTM_DROPOUT),
+        Integer(32, 256, name=DENSE_UNITS),
+        Real(1e-4, 0.1, name=LEARNING_RATE, prior='log-uniform'),
+        Integer(1000, 10000, name=DECAY_STEPS),
+        Real(0.8, 0.99, name=DECAY_RATE),
         # Layer-specific hyperparameters
-        Integer(32, 128, name='conv_filters_1'),
-        Categorical([3, 5], name='conv_kernel_size_1'),
-        Integer(32, 128, name='conv_filters_2'),
-        Categorical([3, 5], name='conv_kernel_size_2'),
-        Integer(32, 512, name='lstm_units_0'),
-        Integer(32, 512, name='lstm_units_1'),
-        Integer(32, 512, name='lstm_units_2'),
+        Integer(32, 128, name=CONV_FILTERS_1),
+        Categorical([3, 5], name=CONV_KERNEL_SIZE_1),
+        Integer(32, 128, name=CONV_FILTERS_2),
+        Categorical([3, 5], name=CONV_KERNEL_SIZE_2),
+        Integer(32, 512, name=LSTM_UNITS_0),
+        Integer(32, 512, name=LSTM_UNITS_1),
+        Integer(32, 512, name=LSTM_UNITS_2),
     ]

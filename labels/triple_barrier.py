@@ -93,9 +93,9 @@ def getBins(events, prices):
     
     return out
 
-def getMinuteVol(prices, span=100):
+def getDayVol(prices, span=100):
     # Calculate the minute returns
-    df0 = prices.index.searchsorted(prices.index - pd.Timedelta(minutes=1))
+    df0 = prices.index.searchsorted(prices.index - pd.Timedelta(days=1))
     df0 = df0[df0 > 0]
     
     # Differences in the indices
