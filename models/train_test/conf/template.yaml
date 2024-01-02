@@ -1,0 +1,37 @@
+gpu_id: 0 # GPU ID to use; possible values: 0, 1
+directory: /path/to/directory # Path to result directory
+
+combinations:
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: /path/to/ct_two_state/train_labels.pkl
+        validation: /path/to/ct_two_state/validation_labels.pkl
+        test: /path/to/ct_two_state/test_labels.pkl
+      ct_three_state:
+        train: /path/to/ct_three_state/train_labels.pkl
+        validation: /path/to/ct_three_state/validation_labels.pkl
+        test: /path/to/ct_three_state/test_labels.pkl
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: /path/to/trend_interval_return/train_weights.pkl
+        validation: /path/to/trend_interval_return/validation_weights.pkl
+        test: /path/to/trend_interval_return/test_weights.pkl
+      none: # If 'none', no paths are required
+    data:
+      # Possible values: "raw", "features"
+      raw:
+        train: /path/to/raw/train_data.csv
+        validation: /path/to/raw/validation_data.csv
+        test: /path/to/raw/test_data.csv
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      cnn_lstm:
+        hyperparameters: /path/to/cnn_lstm_hyperparameters.json
+        batch_size: 64
+        epochs: 500
+        early_stopping_patience: 20
+
+  # ... other combinations

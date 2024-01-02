@@ -54,7 +54,7 @@ def main(gpu_id, data_type, model_name, labeling, directory):
     elif model_name == 'transformer':
         model_gp, search_space = tr.build_model_gp, tr.define_search_space()
 
-    cv_opt.hp_opt_cv(model_gp, search_space, X, Y, directory, 
+    cv_opt.hp_opt_cv(model_gp, search_space, X, Y, W, directory, 
                      trial_num=100, initial_random_trials=10,
                      early_stopping_patience=50, epochs=500,
                      batch_size=64, n_splits=10)

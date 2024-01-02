@@ -2,8 +2,6 @@ import sys
 sys.path.insert(0, '../../')
 
 import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import TimeSeriesSplit
 from skopt import gp_minimize
 from skopt.callbacks import CheckpointSaver, VerboseCallback
@@ -12,14 +10,13 @@ from memory_profiler import profile
 import numpy as np
 import json
 import os
-import psutil
 import gc
 from functools import partial
 
 from models import utils as model_utils
 
 
-def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, initial_random_trials=10, 
+def hp_opt_cv(build_model_gp, search_space, X, Y, W, directory, trial_num=100, initial_random_trials=10, 
               early_stopping_patience=20, epochs=100, batch_size=64, n_splits=5):
     
     try:
@@ -28,7 +25,7 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
     except FileNotFoundError:
         metric_history = []
     
-    partial_objective = partial(objective_gp, X=X, Y=Y, build_model_gp=build_model_gp, epochs=epochs, 
+    partial_objective = partial(objective_gp, X=X, Y=Y, W=W, build_model_gp=build_model_gp, epochs=epochs, 
                                 batch_size=batch_size, n_splits=n_splits, early_stopping_patience=early_stopping_patience, 
                                 metric_history=metric_history, directory=directory)
 
@@ -64,10 +61,19 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, directory, trial_num=100, init
     with open(f'{directory}/overall_info.json', 'w') as file:
         json.dump(overall_info, file, indent=4, default=model_utils.convert_types)
 
+    # Save the best hyperparameters
+    best_hyperparams = result.x
+    best_hp_dict = {search_space[i].name: best_hyperparams[i] for i in range(len(best_hyperparams))}
+    with open(f'{directory}/best_hp.json', 'w') as file:
+        json.dump(best_hp_dict, file, indent=2, default=model_utils.convert_types)
+
 
 @profile
-def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, early_stopping_patience, metric_history, directory):
-    metrics = custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory)
+def objective_gp(params, X, Y, W, build_model_gp, epochs, batch_size, n_splits, early_stopping_patience, metric_history, directory):
+    metrics = custom_cross_val_score(params, X, Y, W, 
+                                     build_model_gp, 
+                                     n_splits, epochs, batch_size, 
+                                     early_stopping_patience, directory)
 
     metric_history.append(metrics)
     with open(f'{directory}/metric_history.json', 'w') as file:
@@ -77,7 +83,7 @@ def objective_gp(params, X, Y, build_model_gp, epochs, batch_size, n_splits, ear
 
 
 @profile
-def custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory):
+def custom_cross_val_score(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
 
@@ -91,28 +97,25 @@ def custom_cross_val_score(params, X, Y, build_model_gp, n_splits, epochs, batch
 
         X_train, X_val = X[train_index], X[val_index]
         Y_train, Y_val = Y[train_index], Y[val_index]
+        W_train, W_val = W[train_index], W[val_index]
 
-        if sample_weights is None:
-            sample_weights = {}
-            sample_weights['train'] = np.ones(Y_train.shape[0])
-            sample_weights['val'] = np.ones(Y_val.shape[0])
         class_weight_dict = model_utils.calculate_class_weight_dict(Y_train)
-        adjusted_sample_weights = {}
-        adjusted_sample_weights['train'] = model_utils.adjust_sample_weights(Y_train, class_weight_dict, sample_weights['train'])
-        adjusted_sample_weights['val'] = model_utils.adjust_sample_weights(Y_val, class_weight_dict, sample_weights['val'])
+        adjusted_W_train = model_utils.adjust_sample_weights(Y_train, class_weight_dict, W_train)
+        adjusted_W_val = model_utils.adjust_sample_weights(Y_val, class_weight_dict, W_val)
+
 
         model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
         try:
             model = model_utils.train_model(model, X_train, Y_train, X_val, Y_val, 
-                                        adjusted_sample_weights['train'], adjusted_sample_weights['val'],
+                                        adjusted_W_train, adjusted_W_val,
                                         batch_size, epochs, early_stopping_patience, directory)
         except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
-            print("Caught TensorFlow InternalError:", e)
+            print(f"Error: {e}")
             model_utils.restart_script()
 
         # Evaluate the model
-        train_metrics = model.evaluate(X_train, Y_train, sample_weight=adjusted_sample_weights['train'], verbose=0)
-        val_metrics = model.evaluate(X_val, Y_val, sample_weight=adjusted_sample_weights['val'], verbose=0)
+        train_metrics = model.evaluate(X_train, Y_train, sample_weight=adjusted_W_train, verbose=0)
+        val_metrics = model.evaluate(X_val, Y_val, sample_weight=adjusted_W_val, verbose=0)
 
         # Update the metrics dictionary
         for i, metric_name in enumerate(model.metrics_names):

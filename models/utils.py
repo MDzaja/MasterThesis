@@ -25,6 +25,7 @@ import pandas as pd
 import pickle
 import os
 import psutil
+import yaml
 
 from labels import oracle
 
@@ -94,6 +95,30 @@ def get_X(data, window_size):
 def get_Y(labels: pd.Series, window_size) -> pd.Series:
     return labels[window_size:]
 
+
+def load_data(path) -> pd.DataFrame:
+    data_df = pd.read_csv(path, index_col=0)
+    data_df.index = pd.to_datetime(data_df.index)
+    return data_df
+
+def load_labels(path, label_name) -> pd.Series:
+    with open(path, 'rb') as file:
+        labels_dict = pickle.load(file)
+    labels = labels_dict[label_name]
+    labels.index = pd.to_datetime(labels.index)
+    return labels
+
+def load_weights(path, label_name, weight_name) -> pd.Series:
+    with open(path, 'rb') as file:
+        weights_dict = pickle.load(file)
+    weights = weights_dict[label_name][weight_name]
+    weights.index = pd.to_datetime(weights.index)
+    return weights
+
+def load_hyperparameters(path):
+    with open(path, 'r') as file:
+        hyperparameters = json.load(file)
+    return hyperparameters
 
 # Convert NumPy types to Python types for JSON serialization
 def convert_types(obj):
@@ -258,3 +283,16 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
 
     return model
 
+
+def get_all_weight_names():
+    return ['backward_looking', 'forward_looking', 'sequential_return', 'trend_interval_return']
+
+
+def get_all_label_names():
+    return ['ct_two_state', 'ct_three_state', 'fixed_time_horizon', 'oracle', 'triple_barrier']
+
+
+def load_yaml_config(config_path):
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config

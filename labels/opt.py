@@ -51,8 +51,8 @@ best_dayVol = best_params[3]
 best_t1 = best_params[5]
 
 # Find the index in the respective lists
-best_dayVol_index = dayVolList.index(best_dayVol)
-best_t1_index = t1_list.index(best_t1)
+best_dayVol_index = next((i for i, x in enumerate(dayVolList) if x.equals(best_dayVol)), None)
+best_t1_index = next((i for i, x in enumerate(t1_list) if x.equals(best_t1)), None)
 
 # Calculate the span and window values from the indexes
 best_span = 40 + (best_dayVol_index * 20)
