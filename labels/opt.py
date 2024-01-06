@@ -27,19 +27,19 @@ file_store = '../artifacts/labels/params_detail_tb.txt'
 print('Optimizing Triple Barrier')
 tEvents = prices.index
 t1_list = []
-for window in range(10, 150, 10):
+for window in range(30, 70, 10):
     t1 = prices.index.searchsorted(tEvents + pd.Timedelta(days=window))
     t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
     t1_list.append(t1)
 dayVolList = []
-for span in range(40, 200, 20):
+for span in range(2, 20, 2):
     dayVol = tb.getDayVol(prices, span=100)
     dayVol = dayVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
     dayVolList.append(dayVol)
 param_grid = [
     [tEvents],                          # tEvents
-    np.arange(0, 2, 0.1).tolist(),  #pt
-    np.arange(0, 2, 0.1).tolist(),  #sl
+    np.arange(0, 0.6, 0.1).tolist(),  #pt
+    np.arange(0, 0.6, 0.1).tolist(),  #sl
     dayVolList,                        # volatility
     [0],                                # minRet
     t1_list,                               # t1
@@ -55,8 +55,8 @@ best_dayVol_index = next((i for i, x in enumerate(dayVolList) if x.equals(best_d
 best_t1_index = next((i for i, x in enumerate(t1_list) if x.equals(best_t1)), None)
 
 # Calculate the span and window values from the indexes
-best_span = 40 + (best_dayVol_index * 20)
-best_window = 10 + (best_t1_index * 10)
+best_span = 2 + (best_dayVol_index * 2)
+best_window = 30 + (best_t1_index * 10)
 
 print('TB; fee={}; pt={}; sl={}; vol_span={}; f1_window={}'.format(fee, best_params[1], best_params[2], best_span, best_window))
 with open(file_store, 'a') as f:

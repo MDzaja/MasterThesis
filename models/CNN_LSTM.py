@@ -38,15 +38,17 @@ def build_model(params, n_length, n_features):
     # Conv1D and MaxPooling1D layers
     for i in range(params[NUM_CONV_LAYERS]):
         filters_key = f'CONV_FILTERS_{i}'
+        conv_filters = globals()[filters_key]
         kernel_size_key = f'CONV_KERNEL_SIZE_{i}'
+        kernel_size = globals()[kernel_size_key]
         if i == 0:
-            model.add(TimeDistributed(Conv1D(filters=params.get(filters_key), 
-                                            kernel_size=params.get(kernel_size_key), 
+            model.add(TimeDistributed(Conv1D(filters=params.get(conv_filters), 
+                                            kernel_size=params.get(kernel_size), 
                                             activation='relu'), 
                                     input_shape=(None, n_length, n_features)))
         else:
-            model.add(TimeDistributed(Conv1D(filters=params.get(filters_key), 
-                                            kernel_size=params.get(kernel_size_key), 
+            model.add(TimeDistributed(Conv1D(filters=params.get(conv_filters), 
+                                            kernel_size=params.get(kernel_size), 
                                             activation='relu', padding='same')))
             
     model.add(TimeDistributed(MaxPooling1D(pool_size=params[CONV_POOL_SIZE])))
@@ -56,7 +58,8 @@ def build_model(params, n_length, n_features):
     # LSTM layers
     for i in range(params[NUM_LSTM_LAYERS]):
         lstm_units_key = f'LSTM_UNITS_{i}'
-        model.add(Bidirectional(LSTM(units=params.get(lstm_units_key), 
+        lstm_units = globals()[lstm_units_key]
+        model.add(Bidirectional(LSTM(units=params.get(lstm_units), 
                                      return_sequences=(i < params[NUM_LSTM_LAYERS] - 1))))
 
     # Dropout after LSTM layers

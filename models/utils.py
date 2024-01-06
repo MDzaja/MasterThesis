@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, '../')
 
+from tensorflow.keras.callbacks import TerminateOnNaN
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras_tuner import BayesianOptimization, Objective
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
@@ -271,11 +272,12 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
     val_data = tf.data.Dataset.from_tensor_slices((X_val, Y_val, val_weights)).batch(batch_size).cache()
 
     # Train the model
+    terminate_on_nan = TerminateOnNaN()
     model.fit(train_data, 
                 epochs=epochs, 
                 validation_data=val_data, 
-                callbacks=[early_stopping, checkpoint],
-                verbose=0)
+                callbacks=[early_stopping, checkpoint, terminate_on_nan],
+                verbose=1)
     
     # Load the best weights
     model.load_weights(checkpoint_path)

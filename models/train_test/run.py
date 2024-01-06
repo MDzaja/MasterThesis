@@ -5,6 +5,7 @@ import os
 import json
 import argparse
 import numpy as np
+import copy
 
 from models import LSTM as lstm_impl
 from models import CNN_LSTM as cnn_lstm_impl
@@ -35,10 +36,10 @@ def test_model(data_type, label_name, weight_name, model_name,
     if model_name == 'cnn_lstm':
         build_func = cnn_lstm_impl.build_model
         # Additional reshaping for CNN-LSTM model
-        n_length = 10
-        n_steps = Xs['train'].shape[1] // n_length
-        n_features = Xs['train'].shape[-1]
         for key in Xs:
+            n_length = 10
+            n_steps = Xs[key].shape[1] // n_length
+            n_features = Xs[key].shape[-1]
             Xs[key] = Xs[key].reshape((Xs[key].shape[0], n_steps, n_length, n_features))
     elif model_name == 'lstm':
         build_func = lstm_impl.build_model
@@ -54,8 +55,20 @@ def test_model(data_type, label_name, weight_name, model_name,
         for key in Ws
     }
 
+    # create Xs['validation'] and Ys['validation'] from Xs['train'] and Ys['train'] by taking the last 20% of the data
+    # TODO: this is a hacky way to do this, but it works for now
+    index = int(0.8 * len(Xs['train']))
+    Xs['validation'] = Xs['train'][index:]
+    Xs['train'] = Xs['train'][:index]
+    Ys['validation'] = Ys['train'][index:]
+    Ys['train'] = Ys['train'][:index]
+    Ws['validation'] = Ws['train'][index:]
+    Ws['train'] = Ws['train'][:index]
+    adjusted_sample_weights['validation'] = adjusted_sample_weights['train'][index:]
+    adjusted_sample_weights['train'] = adjusted_sample_weights['train'][:index]
+
     print(f"Training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting...", flush=True)
-    model = build_func(**hp_dict, Xs['train'].shape[-2], Xs['train'].shape[-1])
+    model = build_func(hp_dict, Xs['train'].shape[-2], Xs['train'].shape[-1])
     model = model_utils.train_model(model, Xs['train'], Ys['train'], Xs['validation'], Ys['validation'], 
                                     adjusted_sample_weights['train'], adjusted_sample_weights['validation'],
                                     batch_size, epochs, es_patience, direcotry)
@@ -120,16 +133,18 @@ def run_models(config):
                         Ws = {key: np.ones_like(Ys[key]) for key in Ys}
                     else:
                         for weight_stage, weight_path in weight_paths.items():
-                            Ws[weight_stage] = model_utils.load_weights(weight_path, label_name, weight_name)
+                            Ws[weight_stage] = model_utils.load_weights(weight_path, label_name, weight_name)[GET_X_Y_WINDOW_SIZE:]
 
                     for model_name, model_params in model_config.items():
                         hp_dict = model_utils.load_hyperparameters(model_params['hyperparameters'])
                         
-                        comb_name = f'{data_type}_{label_name}_{weight_name}_{model_name}'
+                        comb_name = f'{data_type}-{label_name}-{weight_name}-{model_name}'
                         metrics[comb_name] = test_model(
                             data_type, label_name, weight_name, model_name,
-                            Xs, Ys, Ws, hp_dict,
-                            model_params['batch_size'], model_params['epochs'], model_params['early_stopping_patience']
+                            copy.deepcopy(Xs), copy.deepcopy(Ys), 
+                            copy.deepcopy(Ws), copy.deepcopy(hp_dict),
+                            model_params['batch_size'], model_params['epochs'], model_params['early_stopping_patience'],
+                            config['directory']
                         )
 
                         # Save results
@@ -140,7 +155,7 @@ def run_models(config):
 
 if __name__ == '__main__':
     args = parse_args()
-    config = model_utils.load_config(args.config_path)
+    config = model_utils.load_yaml_config(args.config_path)
 
     # Set GPU ID based on config
     os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_id'])
