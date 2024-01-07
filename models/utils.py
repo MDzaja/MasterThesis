@@ -3,15 +3,9 @@ sys.path.insert(0, '../')
 
 from tensorflow.keras.callbacks import TerminateOnNaN
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras_tuner import BayesianOptimization, Objective
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall, AUC
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.model_selection import cross_val_score
-from functools import partial
-from skopt import gp_minimize
-from skopt.callbacks import CheckpointSaver, VerboseCallback
-from skopt import load
 from tensorflow.keras.models import Sequential
 import gc
 from memory_profiler import profile
@@ -291,7 +285,7 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
 
 
 @profile
-def custom_cross_val_score(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, adjustedWeightsForEval):
+def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, adjustedWeightsForEval):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
     best_val_auc = float('-inf')

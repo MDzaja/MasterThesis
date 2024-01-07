@@ -10,9 +10,9 @@ combinations:
     weights:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-      # trend_interval_return:
-      #   train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_2009-06-24_2021-12-01.pkl
-      #   test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_test_2021-12-06_2023-12-27.pkl
+      trend_interval_return:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_2009-06-24_2021-12-01.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_test_2021-12-06_2023-12-27.pkl
       none:
     data:
       # Possible values: "raw", "features"
@@ -21,8 +21,8 @@ combinations:
         test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/test_2021-12-06_2023-12-27.csv
     model:
       # Possible values: "cnn_lstm", "lstm", "transformer"
-      cnn_lstm:
-        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/models/cnn_lstm/raw_hp.json
+      transformer:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/models/transformer/raw_hp.json
         batch_size: 64
         epochs: 2
         early_stopping_patience: 2

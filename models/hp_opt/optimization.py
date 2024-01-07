@@ -70,7 +70,7 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, W, directory, trial_num=100, i
 
 @profile
 def objective_gp(params, X, Y, W, build_model_gp, epochs, batch_size, n_splits, early_stopping_patience, metric_history, directory):
-    metrics, _ = model_utils.custom_cross_val_score(params, X, Y, W,
+    metrics, _ = model_utils.custom_cross_val(params, X, Y, W,
                                      build_model_gp,
                                      n_splits, epochs, batch_size,
                                      early_stopping_patience, directory,

@@ -51,7 +51,7 @@ def test_model(data_type, label_name, weight_name, model_name,
         raise ValueError(f"Unknown model name: {model_name}")
 
     print(f"Training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting...", flush=True)
-    mean_metrics, best_model = model_utils.custom_cross_val_score(hp_dict, Xs['train'], Ys['train'], Ws['train'],
+    mean_metrics, best_model = model_utils.custom_cross_val(hp_dict, Xs['train'], Ys['train'], Ws['train'],
                                                                     build_func,
                                                                     n_splits, epochs, batch_size,
                                                                     es_patience, directory,
