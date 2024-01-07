@@ -27,6 +27,7 @@ import pickle
 import os
 import psutil
 import yaml
+from memory_profiler import profile
 
 from labels import oracle
 
@@ -102,7 +103,7 @@ def load_data(path) -> pd.DataFrame:
     data_df.index = pd.to_datetime(data_df.index)
     return data_df
 
-def load_labels(path, label_name) -> pd.Series:
+def load_labels(path, label_name=None) -> pd.Series:
     with open(path, 'rb') as file:
         labels_dict = pickle.load(file)
     labels = labels_dict[label_name]
@@ -279,11 +280,84 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
                 callbacks=[early_stopping, checkpoint, terminate_on_nan],
                 verbose=1)
     
+    del train_data, val_data
+    gc.collect()
+    
     # Load the best weights
     model.load_weights(checkpoint_path)
     os.remove(checkpoint_path)
 
     return model
+
+
+@profile
+def custom_cross_val_score(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, adjustedWeightsForEval):
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    all_metrics = {}
+    best_val_auc = float('-inf')
+    best_model = None
+
+    memory_log_path = os.path.join(directory, "memory_usage.log")#TODO
+
+    class_weight_dict = calculate_class_weight_dict(Y)
+    adjusted_W = adjust_sample_weights(Y, class_weight_dict, W)
+
+    for train_index, val_index in tscv.split(X):
+
+        mem_before = get_memory_usage()#TODO
+        with open(memory_log_path, "a") as mem_log:
+            mem_log.write(f"Memory usage before training split: {mem_before:.2f} MB\n")
+
+        X_train, X_val = X[train_index], X[val_index]
+        Y_train, Y_val = Y[train_index], Y[val_index]
+        W_train, W_val = W[train_index], W[val_index]
+        adjusted_W_train, adjusted_W_val = adjusted_W[train_index], adjusted_W[val_index]
+
+
+        model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
+        try:
+            model = train_model(model, X_train, Y_train, X_val, Y_val, 
+                                        adjusted_W_train, adjusted_W_val,
+                                        batch_size, epochs, early_stopping_patience, directory)
+        except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
+            print(f"Error: {e}")
+            restart_script()
+
+        # Evaluate the model
+        #TODO sta koristit ode, adjusted ili normalni weights; mozda za hp_opt normalni a za train_test adjusted
+        train_metrics = model.evaluate(X_train, Y_train, 
+                                       sample_weight=adjusted_W_train if adjustedWeightsForEval else W_train,
+                                       verbose=0)
+        val_metrics = model.evaluate(X_val, Y_val, 
+                                     sample_weight=adjusted_W_val if adjustedWeightsForEval else W_val,
+                                     verbose=0)
+
+        # Update the metrics dictionary
+        for i, metric_name in enumerate(model.metrics_names):
+            all_metrics.setdefault(f'train_{metric_name}', []).append(train_metrics[i])
+            all_metrics.setdefault(f'val_{metric_name}', []).append(val_metrics[i])
+
+        # Check if the current model has the best validation AUC
+        auc_index = model.metrics_names.index('auc')
+        current_val_auc = val_metrics[auc_index]
+        if current_val_auc > best_val_auc:
+            best_val_auc = current_val_auc
+            best_model = model
+
+        # Clear the model and Keras session to free memory
+        del model, X_train, X_val, Y_train, Y_val
+        tf.keras.backend.clear_session()
+        gc.collect()
+
+        mem_after = get_memory_usage() #TODO
+        with open(memory_log_path, "a") as mem_log:
+            mem_log.write(f"Memory usage after training split: {mem_after:.2f} MB\n")
+            mem_log.write(f"Memory usage difference: {mem_after - mem_before:.2f} MB\n\n")
+
+    # Calculate and return mean metrics
+    mean_metrics = {metric: np.mean(values) for metric, values in all_metrics.items()}
+
+    return mean_metrics, best_model
 
 
 def get_all_weight_names():

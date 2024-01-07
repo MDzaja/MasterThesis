@@ -6,6 +6,7 @@ import json
 import argparse
 import numpy as np
 import copy
+import pandas as pd
 
 from models import LSTM as lstm_impl
 from models import CNN_LSTM as cnn_lstm_impl
@@ -30,8 +31,9 @@ def save_results(metrics, direcotry):
 
 def test_model(data_type, label_name, weight_name, model_name, 
                 Xs, Ys, Ws, hp_dict,
-                batch_size, epochs, es_patience,
-                direcotry):
+                batch_size, epochs, 
+                es_patience, n_splits,
+                directory):
     # Select the appropriate model building function based on model_name
     if model_name == 'cnn_lstm':
         build_func = cnn_lstm_impl.build_model
@@ -48,43 +50,37 @@ def test_model(data_type, label_name, weight_name, model_name,
     else:
         raise ValueError(f"Unknown model name: {model_name}")
 
-    # Calculate class weights and adjust sample weights
-    class_weight_dict = model_utils.calculate_class_weight_dict(Ys['train'])
-    adjusted_sample_weights = {
-        key: model_utils.adjust_sample_weights(Ys[key], class_weight_dict, Ws[key])
-        for key in Ws
-    }
-
-    # create Xs['validation'] and Ys['validation'] from Xs['train'] and Ys['train'] by taking the last 20% of the data
-    # TODO: this is a hacky way to do this, but it works for now
-    index = int(0.8 * len(Xs['train']))
-    Xs['validation'] = Xs['train'][index:]
-    Xs['train'] = Xs['train'][:index]
-    Ys['validation'] = Ys['train'][index:]
-    Ys['train'] = Ys['train'][:index]
-    Ws['validation'] = Ws['train'][index:]
-    Ws['train'] = Ws['train'][:index]
-    adjusted_sample_weights['validation'] = adjusted_sample_weights['train'][index:]
-    adjusted_sample_weights['train'] = adjusted_sample_weights['train'][:index]
-
     print(f"Training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting...", flush=True)
-    model = build_func(hp_dict, Xs['train'].shape[-2], Xs['train'].shape[-1])
-    model = model_utils.train_model(model, Xs['train'], Ys['train'], Xs['validation'], Ys['validation'], 
-                                    adjusted_sample_weights['train'], adjusted_sample_weights['validation'],
-                                    batch_size, epochs, es_patience, direcotry)
+    mean_metrics, best_model = model_utils.custom_cross_val_score(hp_dict, Xs['train'], Ys['train'], Ws['train'],
+                                                                    build_func,
+                                                                    n_splits, epochs, batch_size,
+                                                                    es_patience, directory,
+                                                                    adjustedWeightsForEval=False)
     print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
 
     # Save the model
-    model_save_path = f"{direcotry}/saved_models/{data_type}-{label_name}-{weight_name}-{model_name}.keras"
+    model_save_path = f"{directory}/saved_models/{data_type}-{label_name}-{weight_name}-{model_name}.keras"
     if not os.path.exists(os.path.dirname(model_save_path)):
         os.makedirs(os.path.dirname(model_save_path))
-    model.save(model_save_path)
+    best_model.save(model_save_path)
 
-    # Evaluate the model
+    # Save the mean metrics
     results = {}
-    for stage in ['train', 'validation', 'test']:
-        eval_results = model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage])
-        results[stage] = {
+    for stage in ['train', 'validation']:
+        name = f'{stage}_cv_mean'
+        metric_prefix = 'val_' if stage == 'validation' else 'train_'
+        results[name] = {
+            "loss": mean_metrics[f'{metric_prefix}loss'],
+            "accuracy": mean_metrics[f'{metric_prefix}binary_accuracy'],
+            "precision": mean_metrics[f'{metric_prefix}precision'],
+            "recall": mean_metrics[f'{metric_prefix}recall'],
+            "auc": mean_metrics[f'{metric_prefix}auc']
+        }
+    # Evaluate the model
+    for stage in ['train', 'test']:
+        name = f'best_model_{stage}'
+        eval_results = best_model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage])
+        results[name] = {
             "loss": eval_results[0],
             "accuracy": eval_results[1],
             "precision": eval_results[2],
@@ -130,7 +126,7 @@ def run_models(config):
                 for weight_name, weight_paths in weights_config.items():
                     Ws = {}
                     if weight_name == 'none':
-                        Ws = {key: np.ones_like(Ys[key]) for key in Ys}
+                        Ws = {key: pd.Series(np.ones_like(Ys[key]), index=Ys[key].index) for key in Ys}
                     else:
                         for weight_stage, weight_path in weight_paths.items():
                             Ws[weight_stage] = model_utils.load_weights(weight_path, label_name, weight_name)[GET_X_Y_WINDOW_SIZE:]
@@ -143,7 +139,8 @@ def run_models(config):
                             data_type, label_name, weight_name, model_name,
                             copy.deepcopy(Xs), copy.deepcopy(Ys), 
                             copy.deepcopy(Ws), copy.deepcopy(hp_dict),
-                            model_params['batch_size'], model_params['epochs'], model_params['early_stopping_patience'],
+                            model_params['batch_size'], model_params['epochs'], 
+                            model_params['early_stopping_patience'], model_params['cv_splits'],
                             config['directory']
                         )
 

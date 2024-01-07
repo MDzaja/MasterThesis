@@ -4,12 +4,13 @@ sys.path.insert(0, '../../')
 import os
 import argparse
 import numpy as np
+import pandas as pd
 
 from models import CNN_LSTM as cnn_lstm
 from models import LSTM as lstm
 from models import transformer as tr
 from models import utils as model_utils
-from models.hp_opt import cv as cv_opt
+from models.hp_opt import optimization as cv_opt
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization based on a configuration file.")
@@ -43,7 +44,7 @@ def main(config):
                 for weight_name, weight_path in weights_config.items():
                     # Load weights
                     if weight_name == 'none':
-                        W = np.ones_like(Y)
+                        W = pd.Series(np.ones(len(Y)), index=Y.index)
                     else:
                         W = model_utils.load_weights(weight_path['path'])
 

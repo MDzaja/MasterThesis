@@ -1,4 +1,4 @@
 CT2; fee=0.0004; tau=0.00298
 CT3; fee=0.0004; tau=0.00176; window=16
 FTH; fee=0.0004; tau=0.0; H=1
-TB; fee=0.0004; pt=0.1; sl=0.4; vol_span=10; f1_window=50
+TB; fee=0.0004; pt=0.1; sl=0.4; vol_span=2; f1_window=30

@@ -70,71 +70,17 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, W, directory, trial_num=100, i
 
 @profile
 def objective_gp(params, X, Y, W, build_model_gp, epochs, batch_size, n_splits, early_stopping_patience, metric_history, directory):
-    metrics = custom_cross_val_score(params, X, Y, W, 
-                                     build_model_gp, 
-                                     n_splits, epochs, batch_size, 
-                                     early_stopping_patience, directory)
+    metrics, _ = model_utils.custom_cross_val_score(params, X, Y, W,
+                                     build_model_gp,
+                                     n_splits, epochs, batch_size,
+                                     early_stopping_patience, directory,
+                                     adjustedWeightsForEval=True)
 
     metric_history.append(metrics)
     with open(f'{directory}/metric_history.json', 'w') as file:
         json.dump(metric_history, file, indent=4, default=model_utils.convert_types)
 
     return -metrics[model_utils.get_default_monitor_metric()]
-
-
-@profile
-def custom_cross_val_score(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory):
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    all_metrics = {}
-
-    memory_log_path = os.path.join(directory, "memory_usage.log")#TODO
-
-    for train_index, val_index in tscv.split(X):
-
-        mem_before = model_utils.get_memory_usage()#TODO
-        with open(memory_log_path, "a") as mem_log:
-            mem_log.write(f"Memory usage before training split: {mem_before:.2f} MB\n")
-
-        X_train, X_val = X[train_index], X[val_index]
-        Y_train, Y_val = Y[train_index], Y[val_index]
-        W_train, W_val = W[train_index], W[val_index]
-
-        class_weight_dict = model_utils.calculate_class_weight_dict(Y_train)
-        adjusted_W_train = model_utils.adjust_sample_weights(Y_train, class_weight_dict, W_train)
-        adjusted_W_val = model_utils.adjust_sample_weights(Y_val, class_weight_dict, W_val)
-
-
-        model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
-        try:
-            model = model_utils.train_model(model, X_train, Y_train, X_val, Y_val, 
-                                        adjusted_W_train, adjusted_W_val,
-                                        batch_size, epochs, early_stopping_patience, directory)
-        except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
-            print(f"Error: {e}")
-            model_utils.restart_script()
-
-        # Evaluate the model
-        train_metrics = model.evaluate(X_train, Y_train, sample_weight=adjusted_W_train, verbose=0)
-        val_metrics = model.evaluate(X_val, Y_val, sample_weight=adjusted_W_val, verbose=0)
-
-        # Update the metrics dictionary
-        for i, metric_name in enumerate(model.metrics_names):
-            all_metrics.setdefault(f'train_{metric_name}', []).append(train_metrics[i])
-            all_metrics.setdefault(f'val_{metric_name}', []).append(val_metrics[i])
-
-        # Clear the model and Keras session to free memory
-        del model, X_train, X_val, Y_train, Y_val, train_dataset, val_dataset
-        tf.keras.backend.clear_session()
-        gc.collect()
-
-        mem_after = model_utils.get_memory_usage() #TODO
-        with open(memory_log_path, "a") as mem_log:
-            mem_log.write(f"Memory usage after training split: {mem_after:.2f} MB\n")
-            mem_log.write(f"Memory usage difference: {mem_after - mem_before:.2f} MB\n\n")
-
-    # Calculate and return mean metrics
-    mean_metrics = {metric: np.mean(values) for metric, values in all_metrics.items()}
-    return mean_metrics
 
 
 def process_hyperparams(result, search_space):

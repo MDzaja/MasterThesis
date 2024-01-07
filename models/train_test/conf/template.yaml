@@ -29,5 +29,6 @@ combinations:
         batch_size: 64
         epochs: 500
         early_stopping_patience: 20
+        cv_splits: 10 # Number of cross-validation splits, must be at least 2
 
   # ... other combinations

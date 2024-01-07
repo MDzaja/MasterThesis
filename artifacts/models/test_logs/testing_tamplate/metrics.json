@@ -1,48 +1,32 @@
 {
-   "raw-ct_two_state-trend_interval_return-cnn_lstm": {
-      "train": {
-         "loss": 0.7064634561538696,
-         "accuracy": 0.5527944564819336,
-         "precision": 0.6239644885063171,
-         "recall": 0.321024090051651,
-         "auc": 0.5509621500968933
+   "raw-oracle-none-cnn_lstm": {
+      "train_cv_mean": {
+         "loss": 0.7759275734424591,
+         "accuracy": 0.45081812143325806,
+         "precision": 0.6432073414325714,
+         "recall": 0.39986924827098846,
+         "auc": 0.47477512061595917
       },
-      "validation": {
-         "loss": 0.7828202247619629,
-         "accuracy": 0.3458865284919739,
-         "precision": 0.0,
-         "recall": 0.0,
-         "auc": 0.6159378886222839
+      "validation_cv_mean": {
+         "loss": 0.8174661695957184,
+         "accuracy": 0.40566959977149963,
+         "precision": 0.3414634168148041,
+         "recall": 0.145185187458992,
+         "auc": 0.5030818581581116
       },
-      "test": {
-         "loss": 0.5970457792282104,
-         "accuracy": 0.4921458065509796,
-         "precision": 0.5950144529342651,
-         "recall": 0.22430968284606934,
-         "auc": 0.5683209300041199
-      }
-   },
-   "raw-ct_two_state-none-cnn_lstm": {
-      "train": {
-         "loss": 22.70258331298828,
-         "accuracy": 0.486563503742218,
-         "precision": 0.0,
-         "recall": 0.0,
-         "auc": 0.5
+      "best_model_train": {
+         "loss": 0.8685285449028015,
+         "accuracy": 0.39609119296073914,
+         "precision": 0.6552962064743042,
+         "recall": 0.18006907403469086,
+         "auc": 0.4996459484100342
       },
-      "validation": {
-         "loss": 24.53911590576172,
-         "accuracy": 0.4397394061088562,
-         "precision": 0.0,
-         "recall": 0.0,
-         "auc": 0.5
-      },
-      "test": {
-         "loss": 22.84467124938965,
-         "accuracy": 0.48148149251937866,
-         "precision": 0.0,
-         "recall": 0.0,
-         "auc": 0.5
+      "best_model_test": {
+         "loss": 0.7462560534477234,
+         "accuracy": 0.43355119228363037,
+         "precision": 0.601190447807312,
+         "recall": 0.34353742003440857,
+         "auc": 0.46427541971206665
       }
    }
 }

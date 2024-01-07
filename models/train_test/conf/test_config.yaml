@@ -4,15 +4,15 @@ directory: /home/mdzaja/MasterThesis/artifacts/models/test_logs/testing_tamplate
 combinations:
   - labels:
       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-      ct_two_state:
+      oracle:
         train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_train_2009-06-24_2021-12-01.pkl
         test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_test_2021-12-06_2023-12-27.pkl
     weights:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-      trend_interval_return:
-        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_2009-06-24_2021-12-01.pkl
-        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_test_2021-12-06_2023-12-27.pkl
+      # trend_interval_return:
+      #   train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_2009-06-24_2021-12-01.pkl
+      #   test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_test_2021-12-06_2023-12-27.pkl
       none:
     data:
       # Possible values: "raw", "features"
@@ -26,3 +26,4 @@ combinations:
         batch_size: 64
         epochs: 2
         early_stopping_patience: 2
+        cv_splits: 2
