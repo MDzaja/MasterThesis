@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # Reindex market_data to match stock_data's index, forward-filling missing values
     market_df = market_df.reindex(stock_df.index, method='ffill')
 
-    feat_df = feat_utils.compute_features(stock_df, market_df, window_size=60)
+    feat_df = feat_utils.compute_features(stock_df, market_df, statistical_w=60, technical_w=28, market_w=60, trend_w=2200)
     feat_df.dropna(inplace=True)
 
     # Reindex stock_df to match feat_df's index, dropping rows where the index is not present in feat_df
