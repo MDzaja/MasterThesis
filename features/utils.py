@@ -15,8 +15,7 @@ MINUTE_FREQUENCY = '1m'
 DAILY_FREQUENCY = '1d'
 
 
-# TODO -  Rename window size variables
-def compute_features(stock_data: pd.DataFrame, market_data: pd.DataFrame, window_size: int, trend_window_size: int) -> pd.DataFrame:
+def compute_features(stock_data: pd.DataFrame, market_data: pd.DataFrame, statistical_w: int, technical_w: int, market_w: int, trend_w: int) -> pd.DataFrame:
     # Detect data frequency
     data_frequency = detect_data_frequency(stock_data)
 
@@ -24,19 +23,19 @@ def compute_features(stock_data: pd.DataFrame, market_data: pd.DataFrame, window
     features = pd.DataFrame(index=stock_data.index)
 
     # 1. Rolling Asset Statistical Features
-    asf = rolling_asset_statistical_features.compute(stock_data, window_size)
+    asf = rolling_asset_statistical_features.compute(stock_data, statistical_w)
 
     # 2. Rolling Asset Technical Indicators
-    ati = rolling_asset_technical_indicators.compute(stock_data, window_size/2)
+    ati = rolling_asset_technical_indicators.compute(stock_data, technical_w)
 
     # 3. Rolling Asset-to-Market Index Features
-    atm = rolling_asset_to_market_index_features.compute(stock_data, market_data, window_size)
+    atm = rolling_asset_to_market_index_features.compute(stock_data, market_data, market_w)
 
     # 4. Time Features
     tf = time_features.compute(stock_data, data_frequency)
 
     # 5. Rolling Asset Trend Features
-    atf = rolling_asset_trend_features.compute(stock_data, market_data, trend_window_size)
+    atf = rolling_asset_trend_features.compute(stock_data, market_data, trend_w)
 
     features = pd.concat([features, asf, ati, atm, atf, tf], axis=1)
 

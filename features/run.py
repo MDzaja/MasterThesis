@@ -12,9 +12,11 @@ TICKER_SYMBOL = 'GC=F'
 START_DATE = '2000-01-01'
 END_DATE = '2023-11-01'
 DATA_FREQUENCY = feat_utils.DAILY_FREQUENCY
-# TODO - Rename these variables
-WINDOW_SIZE_1 = 60
-WINDOW_SIZE_2 = 2200
+STATISTICAL_W = 60
+TECHNICAL_W = 28
+MARKET_W = 60
+TREND_W = 2200
+SAVE_PATH = '/home/mdzaja/MasterThesis/artifacts/features/features.csv'
 
 
 if __name__ == '__main__':
@@ -31,17 +33,17 @@ if __name__ == '__main__':
     market_data = market_data[market_data.index.isin(stock_data.index)]
 
     # Compute features
-    features = feat_utils.compute_features(stock_data, market_data, WINDOW_SIZE_1, WINDOW_SIZE_2)
+    features = feat_utils.compute_features(stock_data, market_data, STATISTICAL_W, TECHNICAL_W, MARKET_W, TREND_W)
 
     # Drop NaN values
     features.dropna(inplace=True)
 
     # Save features to CSV
-    features.to_csv('test_features.csv')
+    features.to_csv(SAVE_PATH)
 
     ##########################################################
 
     # Load features from CSV
-    features = pd.read_csv('test_features.csv', index_col=0)
+    features = pd.read_csv(SAVE_PATH, index_col=0)
 
     print(features.head())
