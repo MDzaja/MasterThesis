@@ -69,6 +69,10 @@ def main(config):
                         # Determine the model and hyperparameter space
                         if model_name == 'cnn_lstm':
                             build_model_gp, search_space = cnn_lstm.build_model_gp, cnn_lstm.define_search_space()
+                            n_length = 10
+                            n_steps = X.shape[1] // n_length
+                            n_features = X.shape[-1]
+                            X = X.reshape((X.shape[0], n_steps, n_length, n_features))
                         elif model_name == 'lstm':
                             build_model_gp, search_space = lstm.build_model_gp, lstm.define_search_space()
                         elif model_name == 'transformer':
