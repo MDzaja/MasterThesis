@@ -241,7 +241,7 @@ def adjust_sample_weights(y_labels, class_weight_dict, sample_weights):
 
 
 def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weights,
-                batch_size, epochs, early_stopping_patience, directory) -> Sequential:
+                batch_size, epochs, early_stopping_patience, directory, verbosity_level=0) -> Sequential:
     # Early stopping callback
     early_stopping = EarlyStopping(
         monitor=get_default_monitor_metric(), 
@@ -270,7 +270,7 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
                 epochs=epochs, 
                 validation_data=val_data, 
                 callbacks=[early_stopping, checkpoint],
-                verbose=0)
+                verbose=verbosity_level)
     
     del train_data, val_data
     gc.collect()
@@ -283,7 +283,7 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
 
 
 @profile
-def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, adjustedWeightsForEval):
+def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, adjustedWeightsForEval, verbosity_level=0):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
     best_val_auc = float('-inf')
@@ -310,7 +310,8 @@ def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_si
         try:
             model = train_model(model, X_train, Y_train, X_val, Y_val, 
                                         adjusted_W_train, adjusted_W_val,
-                                        batch_size, epochs, early_stopping_patience, directory)
+                                        batch_size, epochs, early_stopping_patience,
+                                        directory, verbosity_level)
         except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
             print(f"Error: {e}")
             restart_script()

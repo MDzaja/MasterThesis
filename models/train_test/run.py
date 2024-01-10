@@ -55,7 +55,8 @@ def test_model(data_type, label_name, weight_name, model_name,
                                                                     build_func,
                                                                     n_splits, epochs, batch_size,
                                                                     es_patience, directory,
-                                                                    adjustedWeightsForEval=False)
+                                                                    adjustedWeightsForEval=False,
+                                                                    verbosity_level=1)
     print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
 
     # Save the model

@@ -74,7 +74,8 @@ def objective_gp(params, X, Y, W, build_model_gp, epochs, batch_size, n_splits, 
                                      build_model_gp,
                                      n_splits, epochs, batch_size,
                                      early_stopping_patience, directory,
-                                     adjustedWeightsForEval=True)
+                                     adjustedWeightsForEval=True,
+                                     verbosity_level=0)
 
     metric_history.append(metrics)
     with open(f'{directory}/metric_history.json', 'w') as file:
