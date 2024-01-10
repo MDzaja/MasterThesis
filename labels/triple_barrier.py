@@ -1,15 +1,23 @@
+import sys
+sys.path.insert(0, '../')
+
 import pandas as pd
 import numpy as np
+
+from features import utils as feat_utils
+
 
 def binary_trend_labels(prices: pd.Series, tEvents: pd.Series, pt: float, sl:float, volatility: float, minRet: float=0, t1: pd.Series=None, side: pd.Series=None) -> pd.Series:
     labels = get_labels(prices, tEvents, [pt, sl], volatility, minRet, t1, side)
     labels[labels == -1] = 0
     return labels
 
+
 def get_labels(prices: pd.Series, tEvents: pd.Series, ptSl: list, volatility: float, minRet: float=0, t1: pd.Series=None, side: pd.Series=None) -> pd.Series:
     events = getEvents(prices, tEvents, ptSl, volatility, minRet, t1, side)
     labels = getBins(events, prices)['bin']
     return labels
+
 
 def applyPtSlOnT1(prices: pd.Series, events: pd.DataFrame, ptSl: list) -> pd.Series:
     """
@@ -49,6 +57,7 @@ def applyPtSlOnT1(prices: pd.Series, events: pd.DataFrame, ptSl: list) -> pd.Ser
 
     return out
 
+
 def getEvents(prices, tEvents, ptSl, trgt, minRet, t1=None, side=None):
     # Get target
     trgt = trgt.loc[tEvents]
@@ -70,11 +79,16 @@ def getEvents(prices, tEvents, ptSl, trgt, minRet, t1=None, side=None):
     df0 = applyPtSlOnT1(prices, events, ptSl=ptSl[:2])
     
     events['t1_old'] = events['t1']
-    events['t1'] = df0.dropna(how='all').min(axis=1)  # pd.min ignores nan
+    df0 = df0.dropna(how='all')
+    # Commented line below is needed when timestamps are localized, for some reason...
+    # df0 = df0.applymap(lambda x: np.nan if pd.isna(x) else x)
+    events['t1'] = df0.min(axis=1)
+
     if side is None:
         events = events.drop('side', axis=1)
     
     return events
+
 
 def getBins(events, prices):
     # Prices aligned with events
@@ -93,16 +107,25 @@ def getBins(events, prices):
     
     return out
 
-def getDayVol(prices, span=100):
-    # Calculate the minute returns
-    df0 = prices.index.searchsorted(prices.index - pd.Timedelta(days=1))
-    df0 = df0[df0 > 0]
-    
-    # Differences in the indices
-    df0 = pd.Series(prices.index[df0 - 1], index=prices.index[prices.shape[0] - df0.shape[0]:])
-    df0 = prices.loc[df0.index] / prices.loc[df0.values].values - 1 # minute returns
+
+def getVolatility(prices, span=100):
+    freq = feat_utils.detect_data_frequency(prices)
+
+    if freq == feat_utils.MINUTE_FREQUENCY:
+        offset = pd.Timedelta(minutes=1)
+    else:  # DAILY_FREQUENCY
+        offset = pd.Timedelta(days=1)
+
+    # Initialize an empty series to store returns
+    returns = pd.Series(index=prices.index)
+
+    for dt in prices.index:
+        previous_dt = dt - offset
+        if previous_dt in prices.index:
+            # Calculate return if the previous timestamp exists
+            returns[dt] = prices.loc[dt] / prices.loc[previous_dt] - 1
 
     # Calculate the volatility
-    df0 = df0.ewm(span=span).std()
+    volatility = returns.ewm(span=span).std()
 
-    return df0
+    return volatility

@@ -62,31 +62,31 @@ for window in range(30, 70, 10):
     t1 = prices.index.searchsorted(tEvents + pd.Timedelta(days=window))
     t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
     t1_list.append(t1)
-dayVolList = []
+volatilityList = []
 for span in range(2, 20, 2):
-    dayVol = tb.getDayVol(prices, span=100)
-    dayVol = dayVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
-    dayVolList.append(dayVol)
+    volatility = tb.getVolatility(prices, span=100)
+    volatility = volatility.reindex(tEvents).loc[tEvents].fillna(method='bfill')
+    volatilityList.append(volatility)
 param_grid = [
     [tEvents],                          # tEvents
     np.arange(0, 0.6, 0.1).tolist(),  #pt
     np.arange(0, 0.6, 0.1).tolist(),  #sl
-    dayVolList,                        # volatility
+    volatilityList,                        # volatility
     [0],                                # minRet
     t1_list,                               # t1
 ]
 best_params = lbl_utils.optimize_label_params(binary_trend_labels=tb.binary_trend_labels, prices=prices,
                                               param_grid=param_grid, fee=fee, num_threads=num_threads)
 
-best_dayVol = best_params[3]
+best_volatility = best_params[3]
 best_t1 = best_params[5]
 
 # Find the index in the respective lists
-best_dayVol_index = next((i for i, x in enumerate(dayVolList) if x.equals(best_dayVol)), None)
+best_volatility_index = next((i for i, x in enumerate(volatilityList) if x.equals(best_volatility)), None)
 best_t1_index = next((i for i, x in enumerate(t1_list) if x.equals(best_t1)), None)
 
 # Calculate the span and window values from the indexes
-best_span = 2 + (best_dayVol_index * 2)
+best_span = 2 + (best_volatility_index * 2)
 best_window = 30 + (best_t1_index * 10)
 
 with open(file_store, 'a') as f:

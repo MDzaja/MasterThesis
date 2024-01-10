@@ -140,7 +140,7 @@ def save_all_labels(prices: pd.Series) -> dict:
     tEvents = prices.index
     t1 = prices.index.searchsorted(tEvents + pd.Timedelta(days=30))
     t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
-    minuteVol = tb.getMinuteVol(prices, span=100)
+    minuteVol = tb.getVolatility(prices, span=100)
     minuteVol = minuteVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
     labels_dict['triple_barrier'] = tb.binary_trend_labels(prices, tEvents, pt=0.1, sl=0.7, volatility=minuteVol, minRet=0, t1=t1)
 
