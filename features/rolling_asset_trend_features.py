@@ -2,7 +2,7 @@ import pandas as pd
 import statsmodels.api as sm
 
 
-def compute_rolling_asset_trend_features(stock_data: pd.DataFrame, market_data: pd.DataFrame, window_size: int=2200) -> pd.DataFrame:
+def compute(stock_data: pd.DataFrame, market_data: pd.DataFrame, window_size: int=2200) -> pd.DataFrame:
     """
     Calculate rolling asset trend features for given stock data and market data.
 

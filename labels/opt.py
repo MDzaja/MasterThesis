@@ -9,19 +9,50 @@ import utils as lbl_utils
 import ct_two_state as ct2
 import ct_three_state as ct3
 import fixed_time_horizon as fth
-import oracle
 import triple_barrier as tb
 
 ticker_symbol = 'GC=F'
-start_date = '2000-01-01'
-end_date = '2023-11-01'
+start_date = None#'2000-01-01'
+end_date = None#'2023-11-01'
 
-prices = yf.download(ticker_symbol, start_date, end_date, interval='1d')['Close']
+prices = yf.download(ticker_symbol, start_date, end_date, interval='1m')['Close']
 prices.index = prices.index.tz_localize(None)
 
 fee = 0.0004
 num_threads = 16
-file_store = '../artifacts/labels/params_detail_tb.txt'
+file_store = '../artifacts/labels/GC=F_minute_data.txt'
+
+# CT2
+print('Optimizing CT2')
+param_grid = [
+    np.arange(0, 0.003, 0.00002).tolist() # tau
+]
+best_params = lbl_utils.optimize_label_params(binary_trend_labels=ct2.binary_trend_labels, prices=prices
+                                        , param_grid=param_grid, fee=fee, num_threads=num_threads)
+with open(file_store, 'a') as f:
+    f.write('CT2; fee={}; tau={}\n'.format(fee, best_params[0]))
+
+# CT3
+print('Optimizing CT3')
+param_grid = [
+    np.arange(0.002, 0.004, 0.00002).tolist(),  # tau
+    np.arange(10, 20, 1).tolist()            # window
+]
+best_params = lbl_utils.optimize_label_params(binary_trend_labels=ct3.binary_trend_labels, prices=prices, 
+                                              param_grid=param_grid, fee=fee, num_threads=num_threads)
+with open(file_store, 'a') as f:
+    f.write('CT3; fee={}; tau={}; window={}\n'.format(fee, best_params[0], best_params[1]))
+
+# FTH
+print('Optimizing FTH')
+param_grid = [
+    np.arange(0, 0.0003, 0.00002).tolist(),  # tau
+    np.arange(1, 20, 1).tolist()            # H
+]
+best_params = lbl_utils.optimize_label_params(binary_trend_labels=fth.binary_trend_labels, prices=prices,
+                                              param_grid=param_grid, fee=fee, num_threads=num_threads)
+with open(file_store, 'a') as f:
+    f.write('FTH; fee={}; tau={}; H={}\n'.format(fee, best_params[0], best_params[1]))
 
 # Triple Barrier
 print('Optimizing Triple Barrier')
@@ -58,6 +89,5 @@ best_t1_index = next((i for i, x in enumerate(t1_list) if x.equals(best_t1)), No
 best_span = 2 + (best_dayVol_index * 2)
 best_window = 30 + (best_t1_index * 10)
 
-print('TB; fee={}; pt={}; sl={}; vol_span={}; f1_window={}'.format(fee, best_params[1], best_params[2], best_span, best_window))
 with open(file_store, 'a') as f:
     f.write('TB; fee={}; pt={}; sl={}; vol_span={}; f1_window={}\n'.format(fee, best_params[1], best_params[2], best_span, best_window))

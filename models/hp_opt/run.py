@@ -12,6 +12,10 @@ from models import transformer as tr
 from models import utils as model_utils
 from models.hp_opt import optimization as cv_opt
 
+
+GET_X_Y_WINDOW_SIZE = 60
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization based on a configuration file.")
     parser.add_argument('config_path', type=str, help='Path to the configuration YAML file')
@@ -33,20 +37,33 @@ def main(config):
         data_config = combination['data']
         model_config = combination['model']
 
+        # Handling 'all' in label and weight configurations
+        if 'all' in label_config:
+            all_label_names = model_utils.get_all_label_names()
+            all_labels = {ln: label_config['all'] for ln in all_label_names}
+            label_config = {**all_labels, **{k: v for k, v in label_config.items() if k != 'all'}}
+
+        if 'all' in weights_config:
+            all_weight_names = model_utils.get_all_weight_names()
+            all_weights = {wn: weights_config['all'] for wn in all_weight_names}
+            weights_config = {**all_weights, **{k: v for k, v in weights_config.items() if k != 'all'}}
+
         for data_type, data_path in data_config.items():
             # Load data
-            X = model_utils.load_data(data_path['path'])
+            data = model_utils.load_data(data_path['path'])
+            X = model_utils.get_X(data, GET_X_Y_WINDOW_SIZE)
 
             for label_name, label_path in label_config.items():
                 # Load labels
-                Y = model_utils.load_labels(label_path['path'])
+                labels = model_utils.load_labels(label_path['path'], label_name)
+                Y = model_utils.get_Y(labels, GET_X_Y_WINDOW_SIZE)
 
                 for weight_name, weight_path in weights_config.items():
                     # Load weights
                     if weight_name == 'none':
                         W = pd.Series(np.ones(len(Y)), index=Y.index)
                     else:
-                        W = model_utils.load_weights(weight_path['path'])
+                        W = model_utils.load_weights(weight_path['path'], label_name, weight_name)[GET_X_Y_WINDOW_SIZE:]
 
                     for model_name, model_params in model_config.items():
                         # Determine the model and hyperparameter space

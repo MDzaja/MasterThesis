@@ -28,6 +28,12 @@ bt = Backtest(data,
               trade_on_close=True,
               exclusive_orders=True)
 
-print(bt.run())
-bt.plot(filename=SAVE_PATH,
-        open_browser=False)
+results = bt.run()
+print(results)
+bt.plot(filename=SAVE_PATH, open_browser=False)
+
+# Calculate and print the average annual return
+total_return = results['Return [%]'] / 100
+duration_years = (data.index[-1] - data.index[0]).days / 365.25
+average_annual_return = (1 + total_return) ** (1 / duration_years) - 1
+print("Average Annual Return:", average_annual_return * 100, "%")

@@ -17,22 +17,23 @@ from weights import trend_interval_return as tir
 
 
 TICKER_SYMBOL = 'GC=F'
-START_DATE = '2000-01-01'
-END_DATE = '2024-01-01'
+START_DATE = None#'2000-01-01'
+END_DATE = None#'2024-01-01'
+INTERVAL = '1m'
 
 # 1/7 of data is used for testing, 6/7 for training
 TRAIN_RATIO = 6 / 7
 
 CT_TWO_STATE_PARAMS = {
-    'tau': 0.00298
+    'tau': 0.00064
 }
 CT_THREE_STATE_PARAMS = {
-    'tau': 0.00176,
-    'w': 16
+    'tau': 0.00204,
+    'w': 15
 }
 FIXED_TIME_HORIZON = {
-    'tau': 0,
-    'H': 1
+    'tau': 0.00026,
+    'H': 18
 }
 ORACLE_PARAMS = {
     'fee': 0.0004
@@ -59,8 +60,8 @@ if __name__ == '__main__':
     #########################################
     # DOWNLOAD DATA AND COMPUTE FEATURES
     #########################################
-    stock_df = yf.download(TICKER_SYMBOL, START_DATE, END_DATE, interval='1d')
-    market_df = yf.download('SPY', START_DATE, END_DATE, interval='1d')
+    stock_df = yf.download(TICKER_SYMBOL, START_DATE, END_DATE, interval=INTERVAL)
+    market_df = yf.download('SPY', START_DATE, END_DATE, interval=INTERVAL)
 
     # Reindex market_data to match stock_data's index, forward-filling missing values
     market_df = market_df.reindex(stock_df.index, method='ffill')
@@ -99,18 +100,18 @@ if __name__ == '__main__':
     labels_dict['oracle'] = oracle.binary_trend_labels(prices, 
                                                        fee=ORACLE_PARAMS['fee']).dropna()
 
-    tEvents = prices.index
-    t1 = prices.index.searchsorted(tEvents + pd.Timedelta(days=TRIPLE_BARRIER_PARAMS['f1_window']))
-    t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
-    dayVol = tb.getDayVol(prices, span=TRIPLE_BARRIER_PARAMS['vol_span'])
-    dayVol = dayVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
-    labels_dict['triple_barrier'] = tb.binary_trend_labels(prices, 
-                                                           tEvents, 
-                                                           pt=TRIPLE_BARRIER_PARAMS['pt'], 
-                                                           sl=TRIPLE_BARRIER_PARAMS['sl'], 
-                                                           volatility=dayVol, 
-                                                           minRet=0, 
-                                                           t1=t1).dropna()
+    # tEvents = prices.index
+    # t1 = prices.index.searchsorted(tEvents + pd.Timedelta(days=TRIPLE_BARRIER_PARAMS['f1_window']))
+    # t1 = pd.Series((prices.index[i] if i < prices.shape[0] else pd.NaT for i in t1), index=tEvents)
+    # dayVol = tb.getDayVol(prices, span=TRIPLE_BARRIER_PARAMS['vol_span'])
+    # dayVol = dayVol.reindex(tEvents).loc[tEvents].fillna(method='bfill')
+    # labels_dict['triple_barrier'] = tb.binary_trend_labels(prices, 
+    #                                                        tEvents, 
+    #                                                        pt=TRIPLE_BARRIER_PARAMS['pt'], 
+    #                                                        sl=TRIPLE_BARRIER_PARAMS['sl'], 
+    #                                                        volatility=dayVol, 
+    #                                                        minRet=0, 
+    #                                                        t1=t1).dropna()
 
     train_labels_dict = {}
     test_labels_dict = {}
@@ -185,17 +186,17 @@ if __name__ == '__main__':
     base_path = f'artifacts/assets/{TICKER_SYMBOL}'
 
     ensure_directory_exists(f'{base_path}/data/raw')
-    train_raw_df.to_csv(f'{base_path}/data/raw/train_{format_date(train_raw_df.index[0])}_{format_date(train_raw_df.index[-1])}.csv')
-    test_raw_df.to_csv(f'{base_path}/data/raw/test_{format_date(test_raw_df.index[0])}_{format_date(test_raw_df.index[-1])}.csv')
+    train_raw_df.to_csv(f'{base_path}/data/raw/train_{INTERVAL}_{format_date(train_raw_df.index[0])}_{format_date(train_raw_df.index[-1])}.csv')
+    test_raw_df.to_csv(f'{base_path}/data/raw/test_{INTERVAL}_{format_date(test_raw_df.index[0])}_{format_date(test_raw_df.index[-1])}.csv')
 
     ensure_directory_exists(f'{base_path}/data/feat')
-    train_feat_df.to_csv(f'{base_path}/data/feat/train_{format_date(train_feat_df.index[0])}_{format_date(train_feat_df.index[-1])}.csv')
-    test_feat_df.to_csv(f'{base_path}/data/feat/test_{format_date(test_feat_df.index[0])}_{format_date(test_feat_df.index[-1])}.csv')
+    train_feat_df.to_csv(f'{base_path}/data/feat/train_{INTERVAL}_{format_date(train_feat_df.index[0])}_{format_date(train_feat_df.index[-1])}.csv')
+    test_feat_df.to_csv(f'{base_path}/data/feat/test_{INTERVAL}_{format_date(test_feat_df.index[0])}_{format_date(test_feat_df.index[-1])}.csv')
 
     ensure_directory_exists(f'{base_path}/labels')
-    pd.to_pickle(train_labels_dict, f'{base_path}/labels/all_labels_train_{format_date(train_labels_dict["ct_two_state"].index[0])}_{format_date(train_labels_dict["ct_two_state"].index[-1])}.pkl')
-    pd.to_pickle(test_labels_dict, f'{base_path}/labels/all_labels_test_{format_date(test_labels_dict["ct_two_state"].index[0])}_{format_date(test_labels_dict["ct_two_state"].index[-1])}.pkl')
+    pd.to_pickle(train_labels_dict, f'{base_path}/labels/all_labels_train_{INTERVAL}_{format_date(train_labels_dict["ct_two_state"].index[0])}_{format_date(train_labels_dict["ct_two_state"].index[-1])}.pkl')
+    pd.to_pickle(test_labels_dict, f'{base_path}/labels/all_labels_test_{INTERVAL}_{format_date(test_labels_dict["ct_two_state"].index[0])}_{format_date(test_labels_dict["ct_two_state"].index[-1])}.pkl')
 
     ensure_directory_exists(f'{base_path}/weights')
-    pd.to_pickle(train_weights_dict, f'{base_path}/weights/all_weights_train_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
-    pd.to_pickle(test_weights_dict, f'{base_path}/weights/all_weights_test_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
+    pd.to_pickle(train_weights_dict, f'{base_path}/weights/all_weights_train_{INTERVAL}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
+    pd.to_pickle(test_weights_dict, f'{base_path}/weights/all_weights_test_{INTERVAL}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
