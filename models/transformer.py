@@ -47,9 +47,8 @@ class CustomTransformer(Model):
         # Define MLP layers
         self.mlp_layers = []
         for i in range(params[NUM_MLP_LAYERS]):
-            mlp_units_key = f'MLP_UNITS_{i}'
-            mlp_units = globals()[mlp_units_key]
-            self.mlp_layers.append(Dense(params[mlp_units], activation="relu"))
+            mlp_units_key = globals()[f'MLP_UNITS_{i}']
+            self.mlp_layers.append(Dense(params[mlp_units_key], activation="relu"))
             self.mlp_layers.append(Dropout(params[MLP_DROPOUT]))
 
         # Define Output layer

@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, '../')
 
-from tensorflow.keras.models import Sequential
+from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Dropout, LSTM, TimeDistributed, Bidirectional
 from tensorflow.keras.layers import Conv1D, MaxPooling1D
 from tensorflow.keras.optimizers import Adam
@@ -23,6 +23,7 @@ DENSE_UNITS = 'dense_units'
 LEARNING_RATE = 'learning_rate'
 DECAY_STEPS = 'decay_steps'
 DECAY_RATE = 'decay_rate'
+# Layer-specific hyperparameters, depending on NUM_CONV_LAYERS and NUM_LSTM_LAYERS
 CONV_FILTERS_1 = 'conv_filters_1'
 CONV_KERNEL_SIZE_1 = 'conv_kernel_size_1'
 CONV_FILTERS_2 = 'conv_filters_2'
@@ -32,120 +33,107 @@ LSTM_UNITS_1 = 'lstm_units_1'
 LSTM_UNITS_2 = 'lstm_units_2'
 
 
+class CustomCNNLSTM(Model):
+    def __init__(self, params, n_length, n_features):
+        super(CustomCNNLSTM, self).__init__()
+        self.params = params
+
+        # CNN layers wrapped in TimeDistributed
+        self.cnn_layers = []
+        for i in range(params[NUM_CONV_LAYERS]):
+            conv_filters_key = globals()[f'CONV_FILTERS_{i}']
+            conv_kernel_size_key = globals()[f'CONV_KERNEL_SIZE_{i}']
+            if i == 0:
+                self.cnn_layers.append(TimeDistributed(Conv1D(filters=params[conv_filters_key], 
+                                                         kernel_size=params[conv_kernel_size_key], 
+                                                         activation='relu'), 
+                                        input_shape=(None, n_length, n_features)))
+            else:
+                self.cnn_layers.append(TimeDistributed(Conv1D(filters=params[conv_filters_key], 
+                                                         kernel_size=params[conv_kernel_size_key], 
+                                                         activation='relu', padding='same')))
+
+        self.pooling = TimeDistributed(MaxPooling1D(pool_size=params[CONV_POOL_SIZE]))
+        self.cnn_dropout = TimeDistributed(Dropout(params[CONV_DROPOUT]))
+        self.flatten = TimeDistributed(Flatten())
+
+        # LSTM layers
+        self.lstm_layers = []
+        for i in range(params[NUM_LSTM_LAYERS]):
+            lstm_units_key = globals()[f'LSTM_UNITS_{i}']
+            return_sequences = i < params[NUM_LSTM_LAYERS] - 1
+            self.lstm_layers.append(Bidirectional(LSTM(params[lstm_units_key], return_sequences=return_sequences)))
+
+        self.lstm_dropout = Dropout(params[LSTM_DROPOUT])
+        self.dense_layer = Dense(params[DENSE_UNITS], activation='relu')
+        self.output_layer = Dense(1, activation='sigmoid')
+
+
+    def call(self, inputs):
+        x = inputs
+        for layer in self.cnn_layers:
+            x = layer(x)
+
+        x = self.pooling(x)
+        x = self.cnn_dropout(x)
+        x = self.flatten(x)
+
+        for layer in self.lstm_layers:
+            x = layer(x)
+
+        x = self.lstm_dropout(x)
+        x = self.dense_layer(x)
+        return self.output_layer(x)
+
+
+    def compile(self):
+        # Learning rate schedule
+        lr_schedule = ExponentialDecay(
+            initial_learning_rate=self.params[LEARNING_RATE],
+            decay_steps=self.params[DECAY_STEPS],
+            decay_rate=self.params[DECAY_RATE]
+        )
+
+        # Optimizer
+        opt = Adam(learning_rate=lr_schedule)
+        super(CustomCNNLSTM, self).compile(
+            optimizer=opt,
+            loss=model_utils.get_default_loss(),
+            weighted_metrics=model_utils.get_default_metrics()
+        )
+
+
 def build_model(params, n_length, n_features):
-    model = Sequential()
-
-    # Conv1D and MaxPooling1D layers
-    for i in range(params[NUM_CONV_LAYERS]):
-        filters_key = f'CONV_FILTERS_{i}'
-        conv_filters = globals()[filters_key]
-        kernel_size_key = f'CONV_KERNEL_SIZE_{i}'
-        kernel_size = globals()[kernel_size_key]
-        if i == 0:
-            model.add(TimeDistributed(Conv1D(filters=params.get(conv_filters), 
-                                            kernel_size=params.get(kernel_size), 
-                                            activation='relu'), 
-                                    input_shape=(None, n_length, n_features)))
-        else:
-            model.add(TimeDistributed(Conv1D(filters=params.get(conv_filters), 
-                                            kernel_size=params.get(kernel_size), 
-                                            activation='relu', padding='same')))
-            
-    model.add(TimeDistributed(MaxPooling1D(pool_size=params[CONV_POOL_SIZE])))
-    model.add(TimeDistributed(Dropout(params[CONV_DROPOUT])))
-    model.add(TimeDistributed(Flatten()))
-
-    # LSTM layers
-    for i in range(params[NUM_LSTM_LAYERS]):
-        lstm_units_key = f'LSTM_UNITS_{i}'
-        lstm_units = globals()[lstm_units_key]
-        model.add(Bidirectional(LSTM(units=params.get(lstm_units), 
-                                     return_sequences=(i < params[NUM_LSTM_LAYERS] - 1))))
-
-    # Dropout after LSTM layers
-    model.add(Dropout(params[LSTM_DROPOUT]))
-
-    # Dense layer
-    model.add(Dense(params[DENSE_UNITS], activation='relu'))
-    
-    # Output layer
-    model.add(Dense(1, activation='sigmoid'))
-
-    # Learning rate schedule
-    lr_schedule = ExponentialDecay(initial_learning_rate=params[LEARNING_RATE], 
-                                   decay_steps=params[DECAY_STEPS], 
-                                   decay_rate=params[DECAY_RATE])
-
-    # Optimizer
-    opt = Adam(learning_rate=lr_schedule)
-
-    # Compile the model
-    model.compile(optimizer=opt, 
-                  loss=model_utils.get_default_loss(), 
-                  weighted_metrics=model_utils.get_default_metrics())
-
+    model = CustomCNNLSTM(params, n_length, n_features)
+    model.compile()
     return model
 
 
-def build_model_gp(params, n_length, n_features):
-    # Unpack parameters
-    conv_filters_0, conv_kernel_size_0, num_conv_layers, conv_pool_size, conv_dropout, \
-    num_lstm_layers, lstm_dropout, dense_units, learning_rate, decay_steps, decay_rate, \
-    conv_filters_1, conv_kernel_size_1, conv_filters_2, conv_kernel_size_2, \
-    lstm_units_0, lstm_units_1, lstm_units_2 = params
-
-    model = Sequential()
-    # First Conv1D layer (always included)
-    model.add(TimeDistributed(Conv1D(filters=conv_filters_0, 
-                                     kernel_size=(conv_kernel_size_0,), 
-                                     activation='relu'), 
-                              input_shape=(None, n_length, n_features)))
-
-    # Additional Conv1D layers (if present)
-    for i in range(1, num_conv_layers):
-        model.add(TimeDistributed(Conv1D(filters=locals().get(f'conv_filters_{i}'), 
-                                         kernel_size=(locals().get(f'conv_kernel_size_{i}'),), 
-                                         activation='relu',
-                                         padding='same')))
-
-    # MaxPooling1D and Dropout after the Conv1D layers
-    model.add(TimeDistributed(MaxPooling1D(pool_size=(conv_pool_size,))))
-    model.add(TimeDistributed(Dropout(rate=conv_dropout)))
-
-    # Flatten the output
-    model.add(TimeDistributed(Flatten()))
-
-    # LSTM layers
-    for i in range(num_lstm_layers):
-        lstm_units = locals().get(f'lstm_units_{i}')
-        return_sequences = i < num_lstm_layers - 1
-        return_sequences = True if return_sequences else False #TODO check why is this needed, it throws an error otherwise; Using a symbolic `tf.Tensor` as a Python `bool` is not allowed...
-        model.add(Bidirectional(LSTM(units=lstm_units, 
-                                     return_sequences=return_sequences)))
-
-    # Dropout after LSTM layers
-    model.add(Dropout(rate=lstm_dropout))
-
-    # Dense layer
-    model.add(Dense(units=dense_units, activation='relu'))
-    
-    # Output layer
-    model.add(Dense(1, activation='sigmoid'))
-
-    # Learning rate schedule
-    lr_schedule = ExponentialDecay(initial_learning_rate=learning_rate, 
-                                   decay_steps=decay_steps, 
-                                   decay_rate=decay_rate)
-
-    # Optimizer
-    opt = Adam(learning_rate=lr_schedule)
-
-    # Compile the model
-    model.compile(optimizer=opt, 
-                  loss=model_utils.get_default_loss(), 
-                  metrics=model_utils.get_default_metrics())
-
+def build_model_gp(params_array, n_length, n_features):
+    params_dict = {
+        CONV_FILTERS_0: params_array[0],
+        CONV_KERNEL_SIZE_0: params_array[1],
+        NUM_CONV_LAYERS: params_array[2],
+        CONV_POOL_SIZE: params_array[3],
+        CONV_DROPOUT: params_array[4],
+        NUM_LSTM_LAYERS: params_array[5],
+        LSTM_DROPOUT: params_array[6],
+        DENSE_UNITS: params_array[7],
+        LEARNING_RATE: params_array[8],
+        DECAY_STEPS: params_array[9],
+        DECAY_RATE: params_array[10],
+        CONV_FILTERS_1: params_array[11] if len(params_array) > 11 else None,
+        CONV_KERNEL_SIZE_1: params_array[12] if len(params_array) > 12 else None,
+        CONV_FILTERS_2: params_array[13] if len(params_array) > 13 else None,
+        CONV_KERNEL_SIZE_2: params_array[14] if len(params_array) > 14 else None,
+        LSTM_UNITS_0: params_array[15] if len(params_array) > 15 else None,
+        LSTM_UNITS_1: params_array[16] if len(params_array) > 16 else None,
+        LSTM_UNITS_2: params_array[17] if len(params_array) > 17 else None
+    }
+    model = CustomCNNLSTM(params_dict, n_length, n_features)
+    model.compile()
     return model
+
 
 def define_search_space():
     return [
