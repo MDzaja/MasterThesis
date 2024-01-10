@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 from functools import reduce
 import numpy as np
+import copy
 
 from features import utils as feat_utils
 from labels import ct_two_state as ct2
@@ -23,6 +24,11 @@ INTERVAL = '1m'
 
 # 1/7 of data is used for testing, 6/7 for training
 TRAIN_RATIO = 6 / 7
+
+STATISTICAL_W = 20
+TECHNICAL_W = 10
+MARKET_W = 20
+TREND_W = 220
 
 CT_TWO_STATE_PARAMS = {
     'tau': 0.00064
@@ -63,14 +69,23 @@ if __name__ == '__main__':
     stock_df = yf.download(TICKER_SYMBOL, START_DATE, END_DATE, interval=INTERVAL)
     market_df = yf.download('SPY', START_DATE, END_DATE, interval=INTERVAL)
 
-    # Reindex market_data to match stock_data's index, forward-filling missing values
-    market_df = market_df.reindex(stock_df.index, method='ffill')
+    # Adjust timezone localization
+    stock_df.index = stock_df.index.tz_convert('UTC')
+    market_df.index = market_df.index.tz_convert('UTC')
 
-    feat_df = feat_utils.compute_features(stock_df, market_df, statistical_w=60, technical_w=28, market_w=60, trend_w=2200)
+    #TODO kako ovo odradit
+    # Reindex data to common index
+    common_index = stock_df.index.intersection(market_df.index)
+    stock_df = stock_df.reindex(common_index)
+    market_df = market_df.reindex(common_index)
+
+    feat_df = feat_utils.compute_features(copy.deepcopy(stock_df), market_df, statistical_w=STATISTICAL_W, technical_w=TECHNICAL_W, market_w=MARKET_W, trend_w=TREND_W)
     feat_df.dropna(inplace=True)
 
-    # Reindex stock_df to match feat_df's index, dropping rows where the index is not present in feat_df
-    stock_df = stock_df.reindex(feat_df.index)
+    # Reindex raw and feature dataframes to common index before splitting
+    common_index = stock_df.index.intersection(feat_df.index)
+    stock_df = stock_df.reindex(common_index)
+    feat_df = feat_df.reindex(common_index)
 
     total_rows = len(stock_df)
     split_index = int(total_rows * TRAIN_RATIO)

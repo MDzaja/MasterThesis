@@ -25,12 +25,13 @@ if __name__ == '__main__':
     market_data = yf.download('SPY', START_DATE, END_DATE, interval=DATA_FREQUENCY)
 
     # Adjust timezone localization
-    stock_data.index = stock_data.index.tz_localize(None)
-    market_data.index = market_data.index.tz_localize(None)
+    stock_data.index = stock_data.index.tz_convert('UTC')
+    market_data.index = market_data.index.tz_convert('UTC')
 
-    # Reindex and forward-fill market data
-    market_data = market_data.reindex(stock_data.index, method='ffill')
-    market_data = market_data[market_data.index.isin(stock_data.index)]
+    # Reindex data to common index
+    common_index = stock_data.index.intersection(market_data.index)
+    stock_data = stock_data.reindex(common_index)
+    market_data = market_data.reindex(common_index)
 
     # Compute features
     features = feat_utils.compute_features(stock_data, market_data, STATISTICAL_W, TECHNICAL_W, MARKET_W, TREND_W)
