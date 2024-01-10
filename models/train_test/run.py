@@ -14,9 +14,6 @@ from models import transformer as tr_impl
 from models import utils as model_utils
 
 
-GET_X_Y_WINDOW_SIZE = 60
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Run models based on a configuration file.")
     parser.add_argument('config_path', type=str, help='Path to the configuration YAML file')
@@ -94,6 +91,7 @@ def test_model(data_type, label_name, weight_name, model_name,
 
 def run_models(config):
     metrics = {}
+    window_size = config['window_size']
 
     for combination in config['combinations']:
         data_config = combination['data']
@@ -116,13 +114,13 @@ def run_models(config):
             Xs = {}
             for data_stage, data_path in data_paths.items():
                 data = model_utils.load_data(data_path)
-                Xs[data_stage] = model_utils.get_X(data, GET_X_Y_WINDOW_SIZE)
+                Xs[data_stage] = model_utils.get_X(data, window_size)
 
             for label_name, label_paths in label_config.items():
                 Ys = {}
                 for label_stage, label_path in label_paths.items():
                     labels = model_utils.load_labels(label_path, label_name)
-                    Ys[label_stage] = model_utils.get_Y(labels, GET_X_Y_WINDOW_SIZE)
+                    Ys[label_stage] = model_utils.get_Y(labels, window_size)
 
                 for weight_name, weight_paths in weights_config.items():
                     Ws = {}
@@ -130,7 +128,7 @@ def run_models(config):
                         Ws = {key: pd.Series(np.ones_like(Ys[key]), index=Ys[key].index) for key in Ys}
                     else:
                         for weight_stage, weight_path in weight_paths.items():
-                            Ws[weight_stage] = model_utils.load_weights(weight_path, label_name, weight_name)[GET_X_Y_WINDOW_SIZE:]
+                            Ws[weight_stage] = model_utils.load_weights(weight_path, label_name, weight_name)[window_size:]
 
                     for model_name, model_params in model_config.items():
                         hp_dict = model_utils.load_hyperparameters(model_params['hyperparameters'])

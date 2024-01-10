@@ -13,9 +13,6 @@ from models import utils as model_utils
 from models.hp_opt import optimization as cv_opt
 
 
-GET_X_Y_WINDOW_SIZE = 60
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization based on a configuration file.")
     parser.add_argument('config_path', type=str, help='Path to the configuration YAML file')
@@ -31,6 +28,8 @@ def setup_logging(directory):
     return log_file
 
 def main(config):
+    window_size = config['window_size']
+
     for combination in config['combinations']:
         label_config = combination['labels']
         weights_config = combination['weights']
@@ -51,19 +50,19 @@ def main(config):
         for data_type, data_path in data_config.items():
             # Load data
             data = model_utils.load_data(data_path['path'])
-            X = model_utils.get_X(data, GET_X_Y_WINDOW_SIZE)
+            X = model_utils.get_X(data, window_size)
 
             for label_name, label_path in label_config.items():
                 # Load labels
                 labels = model_utils.load_labels(label_path['path'], label_name)
-                Y = model_utils.get_Y(labels, GET_X_Y_WINDOW_SIZE)
+                Y = model_utils.get_Y(labels, window_size)
 
                 for weight_name, weight_path in weights_config.items():
                     # Load weights
                     if weight_name == 'none':
                         W = pd.Series(np.ones(len(Y)), index=Y.index)
                     else:
-                        W = model_utils.load_weights(weight_path['path'], label_name, weight_name)[GET_X_Y_WINDOW_SIZE:]
+                        W = model_utils.load_weights(weight_path['path'], label_name, weight_name)[window_size:]
 
                     for model_name, model_params in model_config.items():
                         # Determine the model and hyperparameter space

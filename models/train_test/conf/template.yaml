@@ -1,5 +1,6 @@
 gpu_id: 0 # GPU ID to use; possible values: 0, 1
 directory: /path/to/directory # Path to result directory
+windows_size: 60 # Window size for the model, how many previous samples to use for prediction
 
 combinations:
   - labels:
