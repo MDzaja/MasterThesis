@@ -1,0 +1,52 @@
+gpu_id: 0
+directory: /home/mdzaja/MasterThesis/artifacts/models/test_logs/oracle-transformer-2
+window_size: 60
+
+combinations:
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_train_1m_2024-01-04_2024-01-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_test_1m_2024-01-08_2024-01-09.pkl
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+    data:
+      # Possible values: "raw", "features"
+      raw:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/train_1m_2024-01-04_2024-01-08.csv
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/test_1m_2024-01-08_2024-01-09.csv
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      transformer:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/models/transformer/raw-oracle-none-transformer_hp.json
+        batch_size: 64
+        epochs: 500
+        early_stopping_patience: 20
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_train_1m_2024-01-04_2024-01-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_test_1m_2024-01-08_2024-01-09.pkl
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_1m_2024-01-04_2024-01-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_test_1m_2024-01-08_2024-01-09.pkl
+    data:
+      # Possible values: "raw", "features"
+      raw:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/train_1m_2024-01-04_2024-01-08.csv
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/test_1m_2024-01-08_2024-01-09.csv
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      transformer:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/models/transformer/raw-oracle-trend_interval_return-transformer_hp.json
+        batch_size: 64
+        epochs: 500
+        early_stopping_patience: 20
+        cv_splits: 5

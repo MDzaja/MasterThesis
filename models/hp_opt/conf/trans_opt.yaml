@@ -1,6 +1,6 @@
 gpu_id: 0 # GPU ID to use; possible values: 0, 1
 directory: /home/mdzaja/MasterThesis/artifacts/models/optimization_logs/transformer/GC=F_1m_weights
-windows_size: 60
+window_size: 60
 
 combinations:
   - labels:

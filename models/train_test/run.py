@@ -153,6 +153,10 @@ if __name__ == '__main__':
     args = parse_args()
     config = model_utils.load_yaml_config(args.config_path)
 
+    # Create directory for saving results
+    if not os.path.exists(config['directory']):
+        os.makedirs(config['directory'])
+
     # Set GPU ID based on config
     os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_id'])
 

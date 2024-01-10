@@ -1,6 +1,6 @@
 gpu_id: 0
 directory: /home/mdzaja/MasterThesis/artifacts/models/test_logs/testing_tamplate
-windows_size: 60
+window_size: 60
 
 combinations:
   - labels:
