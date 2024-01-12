@@ -1,0 +1,30 @@
+gpu_id: 1 # GPU ID to use; possible values: 0, 1
+directory: /home/mdzaja/MasterThesis/artifacts/models/optimization_logs/transformer/GC=F_1m_feat
+window_size: 60
+
+combinations:
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      all:
+        path: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_train_1m_2024-01-04_2024-01-10.pkl
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        path: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_1m_2024-01-04_2024-01-10.pkl
+      forward_looking:
+        path: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/weights/all_weights_train_1m_2024-01-04_2024-01-10.pkl
+      none:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        path: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/feat/train_1m_2024-01-04_2024-01-10.csv
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      transformer:
+        batch_size: 64
+        epochs: 500
+        early_stopping_patience: 50
+        trial_num: 100
+        initial_random_trials: 5
+        cv_splits: 5 # Number of cross-validation splits, must be at least 2

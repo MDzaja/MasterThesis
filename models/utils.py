@@ -306,13 +306,13 @@ def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_si
         adjusted_W_train, adjusted_W_val = adjusted_W[train_index], adjusted_W[val_index]
 
 
-        model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
         try:
+            model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
             model = train_model(model, X_train, Y_train, X_val, Y_val, 
                                         adjusted_W_train, adjusted_W_val,
                                         batch_size, epochs, early_stopping_patience,
                                         directory, verbosity_level)
-        except tf.errors.InternalError or tf.errors.ResourceExhaustedError as e:
+        except (tf.errors.InternalError, tf.errors.ResourceExhaustedError) as e:
             print(f"Error: {e}")
             restart_script()
 

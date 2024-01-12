@@ -12,6 +12,7 @@ import json
 import os
 import gc
 from functools import partial
+import datetime
 
 from models import utils as model_utils
 
@@ -142,4 +143,5 @@ class ProgressTracker(VerboseCallback):
         with open(self.log_file, 'a') as file:
             current_trial = len(result.func_vals)
             best_score = result.fun
-            file.write(f"Trial {current_trial} finished: Best score = {best_score}\n")
+            current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            file.write(f"{current_datetime} - Trial {current_trial} finished: Best score = {best_score}\n")

@@ -6,8 +6,8 @@ combinations:
   - labels:
       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
       oracle:
-        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_train_1m_2024-01-04_2024-01-08.pkl
-        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/all_labels_test_1m_2024-01-08_2024-01-09.pkl
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/old_all_labels_train_1m_2024-01-04_2024-01-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/labels/old_all_labels_test_1m_2024-01-08_2024-01-09.pkl
     weights:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
@@ -15,8 +15,8 @@ combinations:
     data:
       # Possible values: "raw", "features"
       raw:
-        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/train_1m_2024-01-04_2024-01-08.csv
-        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/test_1m_2024-01-08_2024-01-09.csv
+        train: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/old_train_1m_2024-01-04_2024-01-08.csv
+        test: /home/mdzaja/MasterThesis/artifacts/assets/GC=F/data/raw/old_test_1m_2024-01-08_2024-01-09.csv
     model:
       # Possible values: "cnn_lstm", "lstm", "transformer"
       transformer:

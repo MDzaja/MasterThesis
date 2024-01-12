@@ -17,29 +17,30 @@ from weights import sequential_return as sr
 from weights import trend_interval_return as tir
 
 
-TICKER_SYMBOL = 'GC=F'
-START_DATE = None#'2000-01-01'
-END_DATE = None#'2024-01-01'
-INTERVAL = '1m'
+TICKER_SYMBOL = 'AAPL'
+#START_DATE = None#'2000-01-01'
+#END_DATE = None#'2024-01-01'
+INTERVAL = '1m' # Used just for printout
+SAMPLE_NUM_BEFORE_PROCESSING = 350000 # 3500k
 
 # 1/7 of data is used for testing, 6/7 for training
 TRAIN_RATIO = 6 / 7
 
-STATISTICAL_W = 20
-TECHNICAL_W = 10
-MARKET_W = 20
-TREND_W = 220
+STATISTICAL_W = 60
+TECHNICAL_W = 28
+MARKET_W = 60
+TREND_W = 2200
 
 CT_TWO_STATE_PARAMS = {
-    'tau': 0.00064
+    'tau': 0.00108
 }
 CT_THREE_STATE_PARAMS = {
-    'tau': 0.00204,
-    'w': 15
+    'tau': 0.002,
+    'w': 19
 }
 FIXED_TIME_HORIZON = {
-    'tau': 0.00026,
-    'H': 18
+    'tau': 0,
+    'H': 1
 }
 ORACLE_PARAMS = {
     'fee': 0.0004
@@ -47,7 +48,7 @@ ORACLE_PARAMS = {
 TRIPLE_BARRIER_PARAMS = {
     'pt': 0.1,
     'sl': 0.4,
-    'vol_span': 40,
+    'vol_span': 2,
     'f1_window': 30,
 }
 
@@ -61,17 +62,38 @@ def format_date(date):
     return date.strftime('%Y-%m-%d')
 
 
+def read_csvs_to_dataframe(directory):
+    dataframes = []
+
+    for filename in os.listdir(directory):
+        if filename.endswith('.csv'):
+            file_path = os.path.join(directory, filename)
+            df = pd.read_csv(file_path, index_col=0, parse_dates=True)
+            dataframes.append(df)
+
+    combined_df = pd.concat(dataframes)
+
+    # Sort the DataFrame by the index (datetime in this case)
+    combined_df.index = pd.to_datetime(combined_df.index)
+    combined_df.sort_index(inplace=True)
+
+    # Filter the DataFrame to keep rows between 9:30 and 16:00 hours; trading hours
+    combined_df = combined_df.between_time('09:30', '16:00')
+
+    return combined_df
+
+
 if __name__ == '__main__':
 
     #########################################
     # DOWNLOAD DATA AND COMPUTE FEATURES
     #########################################
-    stock_df = yf.download(TICKER_SYMBOL, START_DATE, END_DATE, interval=INTERVAL)
-    market_df = yf.download('SPY', START_DATE, END_DATE, interval=INTERVAL)
+    stock_df = read_csvs_to_dataframe(f'/home/mdzaja/MasterThesis/artifacts/unprocessed_data/{TICKER_SYMBOL}')[-SAMPLE_NUM_BEFORE_PROCESSING:]
+    market_df = read_csvs_to_dataframe(f'/home/mdzaja/MasterThesis/artifacts/unprocessed_data/SPX').iloc[-SAMPLE_NUM_BEFORE_PROCESSING:]
+    print(f'Loaded {stock_df.shape} stock data and {market_df.shape} market data')
 
     # Adjust timezone localization
-    # TODO For now, imesones have to be set to None because of the way the labels are computed (Triple Barrier); Didn't have time to fix it.
-    market_df.index = market_df.index.tz_convert(stock_df.index.tz)
+    # TODO For now, timezones have to be set to None because of the way the labels are computed (Triple Barrier); Didn't have time to fix it.
     stock_df.index = stock_df.index.tz_localize(None)
     market_df.index = market_df.index.tz_localize(None)
 
@@ -162,7 +184,7 @@ if __name__ == '__main__':
     #########################################
     # ALIGN ALL DATA
     #########################################
-    # Get the union of all indices
+    # Get the intersection of all indices
     intersection_train_index = reduce(
         lambda x, y: x.intersection(y),
         [train_feat_df.index] +
@@ -178,7 +200,7 @@ if __name__ == '__main__':
         [df.index for weights_dict in test_weights_dict.values() for df in weights_dict.values()]
     )
     
-    # Reindex all dataframes to the union of indices
+    # Reindex all dataframes to the common indices
     train_raw_df = train_raw_df.reindex(intersection_train_index)
     test_raw_df = test_raw_df.reindex(intersection_test_index)
 
@@ -200,20 +222,20 @@ if __name__ == '__main__':
     #########################################
     # SAVE DATA
     #########################################
-    # base_path = f'artifacts/assets/{TICKER_SYMBOL}'
+    base_path = f'artifacts/assets/{TICKER_SYMBOL}'
 
-    # ensure_directory_exists(f'{base_path}/data/raw')
-    # train_raw_df.to_csv(f'{base_path}/data/raw/train_{INTERVAL}_{format_date(train_raw_df.index[0])}_{format_date(train_raw_df.index[-1])}.csv')
-    # test_raw_df.to_csv(f'{base_path}/data/raw/test_{INTERVAL}_{format_date(test_raw_df.index[0])}_{format_date(test_raw_df.index[-1])}.csv')
+    ensure_directory_exists(f'{base_path}/data/raw')
+    train_raw_df.to_csv(f'{base_path}/data/raw/train_{INTERVAL}_{format_date(train_raw_df.index[0])}_{format_date(train_raw_df.index[-1])}.csv')
+    test_raw_df.to_csv(f'{base_path}/data/raw/test_{INTERVAL}_{format_date(test_raw_df.index[0])}_{format_date(test_raw_df.index[-1])}.csv')
 
-    # ensure_directory_exists(f'{base_path}/data/feat')
-    # train_feat_df.to_csv(f'{base_path}/data/feat/train_{INTERVAL}_{format_date(train_feat_df.index[0])}_{format_date(train_feat_df.index[-1])}.csv')
-    # test_feat_df.to_csv(f'{base_path}/data/feat/test_{INTERVAL}_{format_date(test_feat_df.index[0])}_{format_date(test_feat_df.index[-1])}.csv')
+    ensure_directory_exists(f'{base_path}/data/feat')
+    train_feat_df.to_csv(f'{base_path}/data/feat/train_{INTERVAL}_{format_date(train_feat_df.index[0])}_{format_date(train_feat_df.index[-1])}.csv')
+    test_feat_df.to_csv(f'{base_path}/data/feat/test_{INTERVAL}_{format_date(test_feat_df.index[0])}_{format_date(test_feat_df.index[-1])}.csv')
 
-    # ensure_directory_exists(f'{base_path}/labels')
-    # pd.to_pickle(train_labels_dict, f'{base_path}/labels/all_labels_train_{INTERVAL}_{format_date(train_labels_dict["ct_two_state"].index[0])}_{format_date(train_labels_dict["ct_two_state"].index[-1])}.pkl')
-    # pd.to_pickle(test_labels_dict, f'{base_path}/labels/all_labels_test_{INTERVAL}_{format_date(test_labels_dict["ct_two_state"].index[0])}_{format_date(test_labels_dict["ct_two_state"].index[-1])}.pkl')
+    ensure_directory_exists(f'{base_path}/labels')
+    pd.to_pickle(train_labels_dict, f'{base_path}/labels/all_labels_train_{INTERVAL}_{format_date(train_labels_dict["ct_two_state"].index[0])}_{format_date(train_labels_dict["ct_two_state"].index[-1])}.pkl')
+    pd.to_pickle(test_labels_dict, f'{base_path}/labels/all_labels_test_{INTERVAL}_{format_date(test_labels_dict["ct_two_state"].index[0])}_{format_date(test_labels_dict["ct_two_state"].index[-1])}.pkl')
 
-    # ensure_directory_exists(f'{base_path}/weights')
-    # pd.to_pickle(train_weights_dict, f'{base_path}/weights/all_weights_train_{INTERVAL}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
-    # pd.to_pickle(test_weights_dict, f'{base_path}/weights/all_weights_test_{INTERVAL}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
+    ensure_directory_exists(f'{base_path}/weights')
+    pd.to_pickle(train_weights_dict, f'{base_path}/weights/all_weights_train_{INTERVAL}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
+    pd.to_pickle(test_weights_dict, f'{base_path}/weights/all_weights_test_{INTERVAL}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')

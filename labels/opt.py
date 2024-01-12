@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, '../')
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -5,22 +7,19 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 
-import utils as lbl_utils
-import ct_two_state as ct2
-import ct_three_state as ct3
-import fixed_time_horizon as fth
-import triple_barrier as tb
+from labels import utils as lbl_utils
+from labels import ct_two_state as ct2
+from labels import ct_three_state as ct3
+from labels import fixed_time_horizon as fth
+from labels import triple_barrier as tb
+from models import utils as model_utils
 
-ticker_symbol = 'GC=F'
-start_date = None#'2000-01-01'
-end_date = None#'2023-11-01'
-
-prices = yf.download(ticker_symbol, start_date, end_date, interval='1m')['Close']
+prices = model_utils.load_data('/home/mdzaja/MasterThesis/artifacts/assets/CL/data/raw/train_1m_2018-06-19_2021-07-01.csv')['Close']
 prices.index = prices.index.tz_localize(None)
 
 fee = 0.0004
 num_threads = 16
-file_store = '../artifacts/labels/GC=F_minute_data.txt'
+file_store = '../artifacts/label_params/CL_minute_data.txt'
 
 # CT2
 print('Optimizing CT2')

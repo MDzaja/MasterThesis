@@ -12,3 +12,4 @@ __pycache__/
 **/optimization_state.pkl
 **/tmp_model.keras
 **/mprofile*
+**/unprocessed_data

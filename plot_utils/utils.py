@@ -3,10 +3,11 @@ sys.path.insert(0, '../')
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
 from matplotlib.ticker import MultipleLocator
+import seaborn as sns
+from tabulate import tabulate
 
 
 def plot_labels(title: str, prices: pd.Series, labels_dict: dict):
@@ -145,3 +146,55 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves'):
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.show()
+
+def plot_acc_auc(metrics_dict, x_title, y_title, x_key, y_key, data_types):
+    def parse_combination_name(name):
+        parts = name.split(';')
+        return {p.split('-')[0]: p.split('-')[1] for p in parts}
+
+    def flatten_data():
+        flattened_data = []
+        for combination, data in metrics_dict.items():
+            parsed_name = parse_combination_name(combination)
+            for data_type, metrics in data.items():
+                if data_type not in data_types:
+                    continue
+                row = [combination]
+                row.extend([parsed_name['D'], parsed_name['M'], parsed_name['L'], parsed_name['W'], data_type])
+                row.extend([metrics[x_key], metrics[y_key]])
+                flattened_data.append(row)
+        return flattened_data
+
+    flattened_data = flatten_data()
+    columns = ['Combination', 'Data', 'Model', 'Label', 'Weight', 'Data_Type', x_title, y_title]
+    metrics_df = pd.DataFrame(flattened_data, columns=columns)
+
+    # Calculate the number of rows needed based on the length of data_types
+    n_rows = (len(data_types) + 1) // 2
+    fig, axes = plt.subplots(n_rows, 2, figsize=(12, 5 * n_rows), sharex=False, sharey=False)
+    if n_rows == 1:  # If there's only one row, axes is a one-dimensional array
+        axes = [axes]
+    
+    for i, data_type in enumerate(data_types):
+        ax = axes[i // 2][i % 2]
+        subset = metrics_df[metrics_df['Data_Type'] == data_type]
+        sns.scatterplot(data=subset, x=x_title, y=y_title, hue='Combination', style='Combination', ax=ax)
+        ax.set_title(data_type)
+        ax.legend().remove()  # We will create a single legend later
+    
+    # Remove any empty subplots
+    for j in range(i + 1, n_rows * 2):
+        fig.delaxes(axes[j // 2][j % 2])
+
+    # Create a single legend
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Adjust the layout to make space for the legend
+    plt.show()
+
+    # Creating DataFrames for 'best_model_train' and 'best_model_test'
+    for data_type in ['best_model_train', 'best_model_test']:
+        subset = metrics_df[metrics_df['Data_Type'] == data_type][[y_title, x_title, 'Data', 'Model', 'Label', 'Weight']]
+        subset = subset.sort_values(by=[y_title, x_title], ascending=False)
+        print(f"DataFrame for {data_type}:\n{tabulate(subset, headers='keys', tablefmt='psql', showindex=False)}")

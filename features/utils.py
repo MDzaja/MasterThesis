@@ -24,20 +24,25 @@ def compute_features(stock_data: pd.DataFrame, market_data: pd.DataFrame, statis
 
     # 1. Rolling Asset Statistical Features
     asf = rolling_asset_statistical_features.compute(stock_data, statistical_w)
+    print('Asset Statistical Features done!')
 
     # 2. Rolling Asset Technical Indicators
     ati = rolling_asset_technical_indicators.compute(stock_data, technical_w)
+    print('Asset Technical Indicators done!')
 
     # 3. Rolling Asset-to-Market Index Features
     atm = rolling_asset_to_market_index_features.compute(stock_data, market_data, market_w)
+    print('Asset-to-Market Index Features done!')
 
     # 4. Time Features
     tf = time_features.compute(stock_data, data_frequency)
+    print('Time Features done!')
 
     # 5. Rolling Asset Trend Features
     atf = rolling_asset_trend_features.compute(stock_data, market_data, trend_w)
+    print('Asset Trend Features done!')
 
-    features = pd.concat([features, asf, ati, atm, atf, tf], axis=1)
+    features = pd.concat([features, stock_data, asf, ati, atm, atf, tf], axis=1)
 
     return features
 
