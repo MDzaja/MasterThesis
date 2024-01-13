@@ -14,3 +14,4 @@ lazy.txt
 **/tmp_model.keras
 **/mprofile*
 **/unprocessed_data
+**/assets
