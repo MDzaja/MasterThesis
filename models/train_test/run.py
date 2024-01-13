@@ -173,6 +173,15 @@ def run_models(config):
     return metrics
 
 
+def setup_logging(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    log_file = open(f'{directory}/output.log', 'a')
+    sys.stdout = log_file
+    sys.stderr = log_file
+    return log_file
+
+
 if __name__ == '__main__':
     args = parse_args()
     config = model_utils.load_yaml_config(args.config_path)
@@ -183,6 +192,7 @@ if __name__ == '__main__':
 
     # Set GPU ID based on config
     os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_id'])
+    setup_logging(config['directory'])
 
     # Run models based on the config
     metrics = run_models(config)

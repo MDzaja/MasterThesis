@@ -78,7 +78,7 @@ def objective_gp(params, X, Y, W, build_model_gp, epochs, batch_size, n_splits, 
                                      n_splits, epochs, batch_size,
                                      early_stopping_patience, directory,
                                      adjustedWeightsForEval=True,
-                                     verbosity_level=0)
+                                     verbosity_level=1)#TODO change verbosity level to 0
 
     metric_history.append(metrics)
     with open(f'{directory}/metric_history.json', 'w') as file:
@@ -149,7 +149,7 @@ class ProgressTracker(VerboseCallback):
         # First call the base class's __call__, which increments the iteration number and prints to console
         super(ProgressTracker, self).__call__(result)
         # Then, add your custom file logging
-        with open(f'{self.log_file}/progress.txt', 'a') as file:
+        with open(f'{self.directory}/progress.txt', 'a') as file:
             current_trial = len(result.func_vals)
             best_score = result.fun
             current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
