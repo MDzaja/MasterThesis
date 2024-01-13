@@ -17,7 +17,7 @@ from weights import sequential_return as sr
 from weights import trend_interval_return as tir
 
 
-TICKER_SYMBOL = 'CL'
+TICKER_SYMBOL = 'AAPL'
 #START_DATE = None#'2000-01-01'
 #END_DATE = None#'2024-01-01'
 INTERVAL = '1m' # Used just for printout

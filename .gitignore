@@ -6,7 +6,6 @@ __pycache__/
 lazy.txt
 
 **/saved_models/
-
 **/trials/
 **/output.log
 **/memory_usage.log
@@ -15,4 +14,3 @@ lazy.txt
 **/mprofile*
 **/unprocessed_data
 **/assets
-**/articats/models
