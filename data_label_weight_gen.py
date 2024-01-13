@@ -17,7 +17,7 @@ from weights import sequential_return as sr
 from weights import trend_interval_return as tir
 
 
-TICKER_SYMBOL = 'AAPL'
+TICKER_SYMBOL = 'CL'
 #START_DATE = None#'2000-01-01'
 #END_DATE = None#'2024-01-01'
 INTERVAL = '1m' # Used just for printout
@@ -32,7 +32,7 @@ MARKET_W = 60
 TREND_W = 2200
 
 CT_TWO_STATE_PARAMS = {
-    'tau': 0.00108
+    'tau': 0.00124
 }
 CT_THREE_STATE_PARAMS = {
     'tau': 0.002,

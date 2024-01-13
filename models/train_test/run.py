@@ -12,6 +12,7 @@ from models import LSTM as lstm_impl
 from models import CNN_LSTM as cnn_lstm_impl
 from models import transformer as tr_impl
 from models import utils as model_utils
+from backtest import utils as backtest_utils
 
 
 def parse_args():
@@ -26,11 +27,11 @@ def save_results(metrics, direcotry):
         json.dump(metrics, file, indent=3, default=model_utils.convert_types)
 
 
-def test_model(data_type, label_name, weight_name, model_name, 
-                Xs, Ys, Ws, hp_dict,
+def test_model(data_type, label_name, weight_name, model_name,
+                data, Xs, Ys, Ws, hp_dict,
                 batch_size, epochs, 
                 es_patience, n_splits,
-                directory):
+                directory, window):
     # Select the appropriate model building function based on model_name
     if model_name == 'cnn_lstm':
         build_func = cnn_lstm_impl.build_model
@@ -78,12 +79,14 @@ def test_model(data_type, label_name, weight_name, model_name,
     for stage in ['train', 'test']:
         name = f'best_model_{stage}'
         eval_results = best_model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage])
+        save_backtest_plot_path = f"{directory}/backtests/{data_type}-{label_name}-{weight_name}-{model_name}-{stage}.html"
         results[name] = {
             "loss": eval_results[0],
             "accuracy": eval_results[1],
             "precision": eval_results[2],
             "recall": eval_results[3],
-            "auc": eval_results[4]
+            "auc": eval_results[4],
+            "cumulative_return": backtest_utils.do_backtest(data[stage], best_model, window, save_backtest_plot_path)['Return [%]'] / 100
         }
 
     return results
@@ -136,11 +139,12 @@ def run_models(config):
                         comb_name = f'{data_type}-{label_name}-{weight_name}-{model_name}'
                         metrics[comb_name] = test_model(
                             data_type, label_name, weight_name, model_name,
+                            copy.deepcopy(data),
                             copy.deepcopy(Xs), copy.deepcopy(Ys), 
                             copy.deepcopy(Ws), copy.deepcopy(hp_dict),
                             model_params['batch_size'], model_params['epochs'], 
                             model_params['early_stopping_patience'], model_params['cv_splits'],
-                            config['directory']
+                            config['directory'], config['window_size']
                         )
 
                         # Save results
