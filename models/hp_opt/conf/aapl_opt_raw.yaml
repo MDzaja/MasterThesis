@@ -5,7 +5,7 @@ window_size: 60
 combinations:
   - labels:
       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-      all:
+      ct_two_state:
         path: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/labels/all_labels_train_1m_2018-06-19_2021-07-01.pkl
     weights:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
@@ -21,6 +21,6 @@ combinations:
         batch_size: 64
         epochs: 300
         early_stopping_patience: 30
-        trial_num: 20
-        initial_random_trials: 3
+        trial_num: 1
+        initial_random_trials: 0
         cv_splits: 5 # Number of cross-validation splits, must be at least 2

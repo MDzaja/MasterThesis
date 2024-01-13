@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 import copy
 import pandas as pd
+import pickle
 
 from models import LSTM as lstm_impl
 from models import CNN_LSTM as cnn_lstm_impl
@@ -22,9 +23,11 @@ def parse_args():
     return args
 
 
-def save_results(metrics, direcotry):
-    with open(f'{direcotry}/metrics.json', 'w') as file:
+def save_results(metrics, train_probs, test_probs, directory):
+    with open(f'{directory}/metrics.json', 'w') as file:
         json.dump(metrics, file, indent=3, default=model_utils.convert_types)
+    pd.to_pickle(train_probs, f'{directory}/train_probs.pkl')
+    pd.to_pickle(test_probs, f'{directory}/test_probs.pkl')
 
 
 def test_model(data_type, label_name, weight_name, model_name,
@@ -76,6 +79,7 @@ def test_model(data_type, label_name, weight_name, model_name,
             "auc": mean_metrics[f'{metric_prefix}auc']
         }
     # Evaluate the model
+    probs = {}
     for stage in ['train', 'test']:
         name = f'best_model_{stage}'
         eval_results = best_model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage])
@@ -88,13 +92,25 @@ def test_model(data_type, label_name, weight_name, model_name,
             "auc": eval_results[4],
             "cumulative_return": backtest_utils.do_backtest(data[stage], best_model, window, save_backtest_plot_path)['Return [%]'] / 100
         }
+        probs[stage] = {
+            'label_name': label_name,
+        }
+        probs[stage]['probs'] = best_model.predict(Xs[stage]).flatten()
 
-    return results
+    return results, probs['train'], probs['test']
 
 
 def run_models(config):
     metrics = {}
+    probs_train = {}
+    probs_test = {}
     window_size = config['window_size']
+
+    try:
+        with open(f'{config["directory"]}/metrics.json', 'r') as file:
+            processed_combinations = json.load(file).keys()
+    except FileNotFoundError:
+        processed_combinations = []
 
     for combination in config['combinations']:
         data_config = combination['data']
@@ -136,19 +152,23 @@ def run_models(config):
                     for model_name, model_params in model_config.items():
                         hp_dict = model_utils.load_hyperparameters(model_params['hyperparameters'])
                         
-                        comb_name = f'{data_type}-{label_name}-{weight_name}-{model_name}'
-                        metrics[comb_name] = test_model(
+                        comb_name = f'D-{data_type};L-{label_name};W-{weight_name};M-{model_name}'
+                        if comb_name in processed_combinations:
+                            print(f"Skipping {comb_name} because it has already been processed.", flush=True)
+                            continue
+
+                        metrics[comb_name], probs_train[comb_name], probs_test[comb_name] = test_model(
                             data_type, label_name, weight_name, model_name,
                             copy.deepcopy(data),
-                            copy.deepcopy(Xs), copy.deepcopy(Ys), 
+                            copy.deepcopy(Xs), copy.deepcopy(Ys),
                             copy.deepcopy(Ws), copy.deepcopy(hp_dict),
-                            model_params['batch_size'], model_params['epochs'], 
+                            model_params['batch_size'], model_params['epochs'],
                             model_params['early_stopping_patience'], model_params['cv_splits'],
                             config['directory'], config['window_size']
                         )
 
                         # Save results
-                        save_results(metrics, config['directory'])
+                        save_results(metrics, probs_train, probs_test, config['directory'])
 
     return metrics
 

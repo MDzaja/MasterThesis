@@ -41,10 +41,12 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, W, directory, trial_num=100, i
         x0 = y0 = None
 
     # Create a ProgressTracker callback
-    tracker = ProgressTracker(f'{directory}/progress.txt',
+    tracker = ProgressTracker(directory,
+                              search_space=search_space,
                               n_total=trial_num,
                               n_init=len(x0) if x0 is not None else 0,
-                              n_random=initial_random_trials)
+                              n_random=initial_random_trials,
+                              )
 
     np.int = np.int64
     result = gp_minimize(func=partial_objective, dimensions=search_space,
@@ -131,17 +133,26 @@ def process_trials(result, search_space, metric_history):
     }
 
 
+def save_best_params(best_hyperparams, search_space, directory):
+    best_hp_dict = {search_space[i].name: best_hyperparams[i] for i in range(len(best_hyperparams))}
+    with open(f'{directory}/best_hp.json', 'w') as file:
+        json.dump(best_hp_dict, file, indent=2, default=model_utils.convert_types)
+
+
 class ProgressTracker(VerboseCallback):
-    def __init__(self, log_file, n_total, n_init=0, n_random=0):
+    def __init__(self, directory, search_space, n_total, n_init=0, n_random=0):
         super(ProgressTracker, self).__init__(n_total=n_total, n_init=n_init, n_random=n_random)
-        self.log_file = log_file
+        self.directory = directory
+        self.search_space = search_space
 
     def __call__(self, result):
         # First call the base class's __call__, which increments the iteration number and prints to console
         super(ProgressTracker, self).__call__(result)
         # Then, add your custom file logging
-        with open(self.log_file, 'a') as file:
+        with open(f'{self.log_file}/progress.txt', 'a') as file:
             current_trial = len(result.func_vals)
             best_score = result.fun
             current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             file.write(f"{current_datetime} - Trial {current_trial} finished: Best score = {best_score}\n")
+
+        save_best_params(result.x, self.search_space, self.directory)
