@@ -1,25 +1,28 @@
 gpu_id: 0
-directory: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/test_logs/raw
+directory: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/test_logs/intraday_raw
 window_size: 60
 
 combinations:
   - labels:
       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
       all:
-        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/labels/all_labels_train_1m_2018-06-19_2021-07-01.pkl
-        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/labels/all_labels_test_1m_2021-07-01_2021-12-31.pkl
+        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/labels/all_labels_train_1m_2010-10-11_2013-10-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/labels/all_labels_test_1m_2013-10-09_2013-10-22.pkl
     weights:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-      all:
-        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_train_1m_2018-06-19_2021-07-01.pkl
-        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_test_1m_2021-07-01_2021-12-31.pkl
+      trend_interval_return:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_train_1m_2010-10-11_2013-10-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_test_1m_2013-10-09_2013-10-22.pkl
+      forward_looking:
+        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_train_1m_2010-10-11_2013-10-08.pkl
+        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_test_1m_2013-10-09_2013-10-22.pkl
       none:
     data:
       # Possible values: "raw", "features"
       raw:
-        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/raw/train_1m_2018-06-19_2021-07-01.csv
-        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/raw/test_1m_2021-07-01_2021-12-31.csv
+        train: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/raw/train_1m_2010-10-11_2013-10-08.csv
+        test: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/raw/test_1m_2013-10-09_2013-10-22.csv
     model:
       # Possible values: "cnn_lstm", "lstm", "transformer"
       transformer:

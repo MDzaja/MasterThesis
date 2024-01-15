@@ -50,19 +50,20 @@ def main(config):
         for data_type, data_path in data_config.items():
             # Load data
             data = model_utils.load_data(data_path['path'])
-            X = model_utils.get_X(data, window_size)
+            X = model_utils.get_X_day_separated(data, window_size)
 
             for label_name, label_path in label_config.items():
                 # Load labels
                 labels = model_utils.load_labels(label_path['path'], label_name)
-                Y = model_utils.get_Y(labels, window_size)
+                Y = model_utils.get_Y_or_W_day_separated(labels, window_size)
 
                 for weight_name, weight_path in weights_config.items():
                     # Load weights
                     if weight_name == 'none':
                         W = pd.Series(np.ones(len(Y)), index=Y.index)
                     else:
-                        W = model_utils.load_weights(weight_path['path'], label_name, weight_name)[window_size:]
+                        weights = model_utils.load_weights(weight_path['path'], label_name, weight_name)
+                        W = model_utils.get_Y_or_W_day_separated(weights, window_size)
 
                     for model_name, model_params in model_config.items():
                         # Determine the model and hyperparameter space

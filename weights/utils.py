@@ -22,8 +22,9 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.S
     
     fig, ax1 = plt.subplots(figsize=(15, 5))
 
+    numerical_indecies = [i for i, _ in enumerate(union_index)]
     # Plot prices on ax1
-    ax1.plot(union_index, prices_, color='black', label='Asset price')
+    ax1.plot(numerical_indecies, prices_, color='black', label='Asset price')
     ax1.set_ylabel('Price', color='black')
     ax1.set_title(title)
     ax1.tick_params(axis='y', labelcolor='black')
@@ -37,7 +38,7 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.S
     ax3.yaxis.set_label_position('left')
     ax3.yaxis.set_ticks_position('left')
     # Plot labels on ax3
-    ax3.plot(union_index, labels_, color='orange', linestyle='-', marker='o', label='Trend labels')
+    ax3.plot(numerical_indecies, labels_, color='orange', linestyle='-', marker='o', label='Trend labels')
     ax3.set_ylabel('Label', color='orange')
     ax3.tick_params(axis='y', labelcolor='orange')
     ax3.set_yticks([1, 0])
@@ -45,7 +46,7 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.S
     # Create the second axis for weights
     ax2 = ax1.twinx()
     # Plot weights on ax2
-    ax2.plot(union_index, weights_, color='blue', label='Weights', linestyle='-', marker='.')
+    ax2.plot(numerical_indecies, weights_, color='blue', label='Weights', linestyle='-', marker='.')
     ax2.set_ylabel('Weights', color='blue')
     ax2.tick_params(axis='y', labelcolor='blue')
 

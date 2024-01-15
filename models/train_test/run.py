@@ -7,7 +7,8 @@ import argparse
 import numpy as np
 import copy
 import pandas as pd
-import pickle
+import datetime
+from tensorflow.keras.models import load_model
 
 from models import LSTM as lstm_impl
 from models import CNN_LSTM as cnn_lstm_impl
@@ -35,6 +36,7 @@ def test_model(data_type, label_name, weight_name, model_name,
                 batch_size, epochs, 
                 es_patience, n_splits,
                 directory, window):
+    results = {}
     # Select the appropriate model building function based on model_name
     if model_name == 'cnn_lstm':
         build_func = cnn_lstm_impl.build_model
@@ -50,39 +52,48 @@ def test_model(data_type, label_name, weight_name, model_name,
         build_func = tr_impl.build_model
     else:
         raise ValueError(f"Unknown model name: {model_name}")
-
-    print(f"Training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting...", flush=True)
-    mean_metrics, best_model = model_utils.custom_cross_val(hp_dict, Xs['train'], Ys['train'], Ws['train'],
-                                                                    build_func,
-                                                                    n_splits, epochs, batch_size,
-                                                                    es_patience, directory,
-                                                                    adjustedWeightsForEval=False,
-                                                                    verbosity_level=1)
-    print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
-
-    # Save the model
+    
     model_save_path = f"{directory}/saved_models/{data_type}-{label_name}-{weight_name}-{model_name}.keras"
-    if not os.path.exists(os.path.dirname(model_save_path)):
-        os.makedirs(os.path.dirname(model_save_path))
-    best_model.save(model_save_path)
+    if os.path.exists(model_save_path):
+        best_model = load_model(model_save_path)
+        best_model.compile()
+        print(f"Loaded {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
+    else:
+        print(f"Training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting...", flush=True)
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"Current time: {current_datetime}", flush=True)
+        mean_metrics, best_model = model_utils.custom_cross_val(hp_dict, Xs['train'], Ys['train'], Ws['train'],
+                                                                        build_func,
+                                                                        n_splits, epochs, batch_size,
+                                                                        es_patience, directory,
+                                                                        adjustedWeightsForEval=False,
+                                                                        verbosity_level=0)
+        print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"Current time: {current_datetime}", flush=True)
 
-    # Save the mean metrics
-    results = {}
-    for stage in ['train', 'validation']:
-        name = f'{stage}_cv_mean'
-        metric_prefix = 'val_' if stage == 'validation' else 'train_'
-        results[name] = {
-            "loss": mean_metrics[f'{metric_prefix}loss'],
-            "accuracy": mean_metrics[f'{metric_prefix}binary_accuracy'],
-            "precision": mean_metrics[f'{metric_prefix}precision'],
-            "recall": mean_metrics[f'{metric_prefix}recall'],
-            "auc": mean_metrics[f'{metric_prefix}auc']
-        }
+        # Save the model
+        if not os.path.exists(os.path.dirname(model_save_path)):
+            os.makedirs(os.path.dirname(model_save_path))
+        best_model.save(model_save_path)
+
+        # Save the mean metrics
+        for stage in ['train', 'validation']:
+            name = f'{stage}_cv_mean'
+            metric_prefix = 'val_' if stage == 'validation' else 'train_'
+            results[name] = {
+                "loss": mean_metrics[f'{metric_prefix}loss'],
+                "accuracy": mean_metrics[f'{metric_prefix}binary_accuracy'],
+                "precision": mean_metrics[f'{metric_prefix}precision'],
+                "recall": mean_metrics[f'{metric_prefix}recall'],
+                "auc": mean_metrics[f'{metric_prefix}auc']
+            }
+
     # Evaluate the model
     probs = {}
     for stage in ['train', 'test']:
         name = f'best_model_{stage}'
-        eval_results = best_model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage])
+        eval_results = best_model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage], verbose=0)
         save_backtest_plot_path = f"{directory}/backtests/{data_type}-{label_name}-{weight_name}-{model_name}-{stage}.html"
         results[name] = {
             "loss": eval_results[0],
@@ -90,12 +101,12 @@ def test_model(data_type, label_name, weight_name, model_name,
             "precision": eval_results[2],
             "recall": eval_results[3],
             "auc": eval_results[4],
-            "cumulative_return": backtest_utils.do_backtest(data[stage], best_model, window, save_backtest_plot_path)['Return [%]'] / 100
+            "cumulative_return": backtest_utils.do_backtest(data[stage], best_model, window, data['train'], save_backtest_plot_path)['Return [%]'] / 100
         }
         probs[stage] = {
             'label_name': label_name,
         }
-        probs[stage]['probs'] = best_model.predict(Xs[stage]).flatten()
+        probs[stage]['probs'] = best_model.predict(Xs[stage], verbose=0).flatten()
 
     return results, probs['train'], probs['test']
 
@@ -131,15 +142,16 @@ def run_models(config):
 
         for data_type, data_paths in data_config.items():
             Xs = {}
+            data = {}
             for data_stage, data_path in data_paths.items():
-                data = model_utils.load_data(data_path)
-                Xs[data_stage] = model_utils.get_X(data, window_size)
+                data[data_stage] = model_utils.load_data(data_path)
+                Xs[data_stage] = model_utils.get_X_day_separated(data[data_stage], window_size, data['train'])
 
             for label_name, label_paths in label_config.items():
                 Ys = {}
                 for label_stage, label_path in label_paths.items():
                     labels = model_utils.load_labels(label_path, label_name)
-                    Ys[label_stage] = model_utils.get_Y(labels, window_size)
+                    Ys[label_stage] = model_utils.get_Y_or_W_day_separated(labels, window_size)
 
                 for weight_name, weight_paths in weights_config.items():
                     Ws = {}
@@ -147,7 +159,8 @@ def run_models(config):
                         Ws = {key: pd.Series(np.ones_like(Ys[key]), index=Ys[key].index) for key in Ys}
                     else:
                         for weight_stage, weight_path in weight_paths.items():
-                            Ws[weight_stage] = model_utils.load_weights(weight_path, label_name, weight_name)[window_size:]
+                            weights = model_utils.load_weights(weight_path, label_name, weight_name)
+                            Ws[weight_stage] = model_utils.get_Y_or_W_day_separated(weights, window_size)
 
                     for model_name, model_params in model_config.items():
                         hp_dict = model_utils.load_hyperparameters(model_params['hyperparameters'])

@@ -56,7 +56,7 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights_dict:
     num_rows = (num_weights + 1) // 2  # +1 for rounding up in integer division
 
     # Create a figure with subplots
-    fig, axes = plt.subplots(num_rows, 2, figsize=(15, 5 * num_rows))
+    fig, axes = plt.subplots(num_rows, 2, figsize=(20, 10 * num_rows))#TODO: change figsize
     # Flatten axes array for easy indexing
     axes = axes.flatten()
 
@@ -190,7 +190,7 @@ def plot_acc_auc(metrics_dict, x_title, y_title, x_key, y_key, data_types):
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3)
     
-    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Adjust the layout to make space for the legend
+    plt.tight_layout(pad=5.0)  # Adjust the layout to make space for the legend
     plt.show()
 
     # Creating DataFrames for 'best_model_train' and 'best_model_test'

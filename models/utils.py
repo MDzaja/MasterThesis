@@ -72,10 +72,16 @@ def get_aligned_raw_feat_lbl(feat_csv_path, lbl_pkl_path):
     return raw_data, features_df, labels_dict
 
 
-def get_X(data, window_size):
+def get_X(data, window_size, scale_reference_data=None):
     # Normalize features to range between -1 and 1
     scaler = MinMaxScaler(feature_range=(-1, 1))
-    scaled_data = scaler.fit_transform(data)
+    # If scale_reference_data is provided, use it to fit the scaler
+    if scale_reference_data is not None:
+        scaler.fit(scale_reference_data)
+        scaled_data = scaler.transform(data)
+    else:
+        # Otherwise, fit and transform the data itself
+        scaled_data = scaler.fit_transform(data)
 
     # Create the 3D input data shape [samples, time_steps, features]
     X = []
@@ -87,8 +93,45 @@ def get_X(data, window_size):
     return np.array(X)
 
 
-def get_Y(labels: pd.Series, window_size) -> pd.Series:
-    return labels[window_size:]
+def get_X_day_separated(data, window_size, scale_reference_data=None):
+    # Normalize features to range between -1 and 1
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    # If scale_reference_data is provided, use it to fit the scaler
+    if scale_reference_data is not None:
+        scaler.fit(scale_reference_data)
+        scaled_data = scaler.transform(data)
+    else:
+        # Otherwise, fit and transform the data itself
+        scaled_data = scaler.fit_transform(data)
+    scaled_df = pd.DataFrame(scaled_data, index=data.index, columns=data.columns)
+
+    # Create the 3D input data shape [samples, time_steps, features]
+    X = []
+
+    for date, group in scaled_df.groupby(pd.Grouper(freq='D')):
+        if len(group) < window_size:
+            continue
+        group_array = group.values
+        for i in range(window_size, len(group_array)):
+            X.append(group_array[i - window_size:i, :])
+
+    # Convert to a 3D NumPy array
+    return np.array(X)
+
+
+def get_Y_or_W(series: pd.Series, window_size) -> pd.Series:
+    return series.iloc[window_size:]
+
+def get_Y_or_W_day_separated(series: pd.Series, window_size) -> pd.Series:
+    def filter_group(group):
+        # Only return the group if it has enough samples
+        if len(group) >= window_size:
+            return group.iloc[window_size:]
+        else:
+            return pd.Series(dtype=group.dtype)
+
+    # Group by day, apply the filter, and concatenate the results
+    return series.groupby(pd.Grouper(freq='D')).apply(filter_group).droplevel(0)
 
 
 def load_data(path) -> pd.DataFrame:
