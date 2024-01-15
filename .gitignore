@@ -15,3 +15,4 @@ lazy.txt
 **/unprocessed_data
 *.csv
 *.pkl
+*.html
