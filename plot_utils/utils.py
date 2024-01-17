@@ -198,3 +198,19 @@ def plot_acc_auc(metrics_dict, x_title, y_title, x_key, y_key, data_types):
         subset = metrics_df[metrics_df['Data_Type'] == data_type][[y_title, x_title, 'Data', 'Model', 'Label', 'Weight']]
         subset = subset.sort_values(by=[y_title, x_title], ascending=False)
         print(f"DataFrame for {data_type}:\n{tabulate(subset, headers='keys', tablefmt='psql', showindex=False)}")
+
+
+def plot_weights_distribution(weights: pd.Series):
+    """
+    Plots the distribution of weight values.
+
+    :param weights: A pandas Series containing weight values ranging from 0 to 1.
+    """
+    plt.figure(figsize=(8, 6))
+    sns.histplot(weights, kde=True, binwidth=0.05, binrange=(0, 1))
+    plt.title('Distribution of Weights')
+    plt.xlabel('Weight Value')
+    plt.ylabel('Frequency')
+    plt.xlim(0, 1)  # Ensure x-axis is from 0 to 1
+    plt.grid(True)
+    plt.show()

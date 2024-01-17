@@ -27,8 +27,13 @@ def setup_logging(directory):
     sys.stderr = log_file
     return log_file
 
+def set_logging_back_to_normal():
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
+
 def main(config):
     window_size = config['window_size']
+    use_class_balancing = False
 
     for combination in config['combinations']:
         label_config = combination['labels']
@@ -41,7 +46,8 @@ def main(config):
             all_label_names = model_utils.get_all_label_names()
             all_labels = {ln: label_config['all'] for ln in all_label_names}
             label_config = {**all_labels, **{k: v for k, v in label_config.items() if k != 'all'}}
-
+        
+        # TODO - Implement 'all' in weights_config, some changes to the code are required
         if 'all' in weights_config:
             all_weight_names = model_utils.get_all_weight_names()
             all_weights = {wn: weights_config['all'] for wn in all_weight_names}
@@ -57,12 +63,14 @@ def main(config):
                 labels = model_utils.load_labels(label_path['path'], label_name)
                 Y = model_utils.get_Y_or_W_day_separated(labels, window_size)
 
-                for weight_name, weight_path in weights_config.items():
+                for weight_name, weight_props in weights_config.items():
+                    if weight_props is not None and 'class_balance' in weight_props:
+                        use_class_balancing = True
                     # Load weights
                     if weight_name == 'none':
                         W = pd.Series(np.ones(len(Y)), index=Y.index)
                     else:
-                        weights = model_utils.load_weights(weight_path['path'], label_name, weight_name)
+                        weights = model_utils.load_weights(weight_props['path'], label_name, weight_name)
                         W = model_utils.get_Y_or_W_day_separated(weights, window_size)
 
                     for model_name, model_params in model_config.items():
@@ -81,9 +89,10 @@ def main(config):
                             raise ValueError(f"Unknown model name: {model_name}")
 
                         # Construct and create the combination-specific directory
-                        combination_dir = f"{config['directory']}/{data_type}-{label_name}-{weight_name}-{model_name}"
+                        combination_dir = f"{config['directory']}/{data_type}-{label_name}-{'CB_' if use_class_balancing else ''}{weight_name}-{model_name}"
                         if not os.path.exists(combination_dir):
                             os.makedirs(combination_dir)
+                        log_file = setup_logging(combination_dir)
 
                         finished_file = os.path.join(combination_dir, '.finished')
 
@@ -96,6 +105,7 @@ def main(config):
                         cv_opt.hp_opt_cv(
                             build_model_gp, search_space, X, Y, W, 
                             combination_dir,
+                            use_class_balancing=use_class_balancing,
                             trial_num=model_params['trial_num'],
                             initial_random_trials=model_params['initial_random_trials'],
                             early_stopping_patience=model_params['early_stopping_patience'],
@@ -107,14 +117,14 @@ def main(config):
                         # Create a .finished file after completion
                         with open(finished_file, 'w') as file:
                             file.write('Optimization completed.')
+                        print(f"Optimization completed for {combination_dir}.")
+                        log_file.close()
+                        set_logging_back_to_normal()
 
 if __name__ == '__main__':
     args = parse_args()
     config = model_utils.load_yaml_config(args.config_path)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_id'])
-    log_file = setup_logging(config['directory'])
 
     main(config)
-    
-    log_file.close()

@@ -13,6 +13,7 @@ combinations:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
       trend_interval_return:
+        class_balance: # If 'class_balance', class balancing is used
         path: /path/to/trend_interval_return/weights.pkl
       none:  # If 'none', no paths are required
     data:

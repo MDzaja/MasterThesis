@@ -31,7 +31,6 @@ def ModelBasedIntradayStrategyFactory(model, window, scale_reference_data=None):
             return predictions
 
         def next(self):
-            super().next()
             # Close position at the end of the day
             current_index = len(self.data) - 1
             if current_index < len(self.whole_data) - 1:
@@ -49,6 +48,37 @@ def ModelBasedIntradayStrategyFactory(model, window, scale_reference_data=None):
                     self.position.close()
 
     return ModelBasedIntradayStrategy
+
+
+def PredictionsIntradayStrategyFactory(probs: pd.Series):
+    class PredictionsIntradayStrategy(Strategy):
+
+        threshold=0.5
+
+        def init(self):
+            super().init()
+            self.init_probs = probs
+            self.predictions = self.I(self.make_predictions)
+            self.whole_data = self.data.df.copy()
+
+        def make_predictions(self):
+            return self.init_probs.values
+
+        def next(self):
+            # Close position at the end of the day
+            current_index = len(self.data) - 1
+            if current_index < len(self.whole_data) - 1 and self.data.index[-1].date() != self.whole_data.index[current_index + 1].date():
+                if self.position:
+                    self.position.close()
+            # Trading logic
+            elif self.predictions[-1] > self.threshold:
+                if not self.position:
+                    self.buy()
+            else:
+                if self.position:
+                    self.position.close()
+
+    return PredictionsIntradayStrategy
 
 
 def BuyAndHoldStrategyFactory(window):

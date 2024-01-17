@@ -21,6 +21,7 @@ import os
 import psutil
 import yaml
 from memory_profiler import profile
+import copy
 
 from labels import oracle
 
@@ -326,16 +327,13 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
 
 
 @profile
-def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, adjustedWeightsForEval, verbosity_level=0):
+def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, useWeightsForEval, useClassBalance, verbosity_level=0):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
     best_val_auc = float('-inf')
     best_model = None
 
     memory_log_path = os.path.join(directory, "memory_usage.log")#TODO
-
-    class_weight_dict = calculate_class_weight_dict(Y)
-    adjusted_W = adjust_sample_weights(Y, class_weight_dict, W)
 
     for train_index, val_index in tscv.split(X):
 
@@ -345,14 +343,17 @@ def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_si
 
         X_train, X_val = X[train_index], X[val_index]
         Y_train, Y_val = Y[train_index], Y[val_index]
-        W_train, W_val = W[train_index], W[val_index]
-        adjusted_W_train, adjusted_W_val = adjusted_W[train_index], adjusted_W[val_index]
-
+        W_train, W_val = copy.deepcopy(W[train_index]), copy.deepcopy(W[val_index])
+        if useClassBalance:
+            class_weight_train_dict = calculate_class_weight_dict(Y_train)
+            class_weight_val_dict = calculate_class_weight_dict(Y_val)
+            W_train = adjust_sample_weights(Y_train, class_weight_train_dict, W_train)
+            W_val = adjust_sample_weights(Y_val, class_weight_val_dict, W_val)
 
         try:
             model = build_model_gp(params, X_train.shape[-2], X_train.shape[-1])
             model = train_model(model, X_train, Y_train, X_val, Y_val, 
-                                        adjusted_W_train, adjusted_W_val,
+                                        W_train, W_val,
                                         batch_size, epochs, early_stopping_patience,
                                         directory, verbosity_level)
         except (tf.errors.InternalError, tf.errors.ResourceExhaustedError) as e:
@@ -361,11 +362,11 @@ def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_si
 
         # Evaluate the model
         #TODO sta koristit ode, adjusted ili normalni weights; mozda za hp_opt normalni a za train_test adjusted
-        train_metrics = model.evaluate(X_train, Y_train, 
-                                       sample_weight=adjusted_W_train if adjustedWeightsForEval else W_train,
+        train_metrics = model.evaluate(X_train, Y_train,
+                                       sample_weight=W_train if useWeightsForEval else None,
                                        verbose=0)
-        val_metrics = model.evaluate(X_val, Y_val, 
-                                     sample_weight=adjusted_W_val if adjustedWeightsForEval else W_val,
+        val_metrics = model.evaluate(X_val, Y_val,
+                                     sample_weight=W_val if useWeightsForEval else None,
                                      verbose=0)
 
         # Update the metrics dictionary

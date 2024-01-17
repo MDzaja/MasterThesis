@@ -33,6 +33,7 @@ def save_results(metrics, train_probs, test_probs, directory):
 
 def test_model(data_type, label_name, weight_name, model_name,
                 data, Xs, Ys, Ws, hp_dict,
+                use_class_balancing,
                 batch_size, epochs, 
                 es_patience, n_splits,
                 directory, window):
@@ -66,7 +67,8 @@ def test_model(data_type, label_name, weight_name, model_name,
                                                                         build_func,
                                                                         n_splits, epochs, batch_size,
                                                                         es_patience, directory,
-                                                                        adjustedWeightsForEval=False,
+                                                                        useWeightsForEval=False,
+                                                                        useClassBalance=use_class_balancing,
                                                                         verbosity_level=0)
         print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -89,26 +91,37 @@ def test_model(data_type, label_name, weight_name, model_name,
                 "auc": mean_metrics[f'{metric_prefix}auc']
             }
 
+    if not os.path.exists(f'{directory}/backtests'):
+        os.makedirs(f'{directory}/backtests')
+
     # Evaluate the model
-    probs = {}
+    probs_dict = {}
     for stage in ['train', 'test']:
         name = f'best_model_{stage}'
-        eval_results = best_model.evaluate(Xs[stage], Ys[stage], sample_weight=Ws[stage], verbose=0)
+        eval_results = best_model.evaluate(Xs[stage], Ys[stage], verbose=0)
         save_backtest_plot_path = f"{directory}/backtests/{data_type}-{label_name}-{weight_name}-{model_name}-{stage}.html"
+
+        probs_dict[stage] = {
+            'label_name': label_name,
+        }
+        probs_arr = best_model.predict(Xs[stage], verbose=0).flatten()
+        probs_s = pd.Series(probs_arr, index=Ys[stage].index)
+        combined_index = probs_s.index.union(data[stage].index)
+        probs_s = probs_s.reindex(combined_index, fill_value=0)
+        probs_dict[stage]['probs'] = probs_s
+        bt_result, threshold = backtest_utils.do_backtest_w_optimization(data[stage], probs_dict[stage]['probs'], save_backtest_plot_path)
+
         results[name] = {
             "loss": eval_results[0],
             "accuracy": eval_results[1],
             "precision": eval_results[2],
             "recall": eval_results[3],
             "auc": eval_results[4],
-            "cumulative_return": backtest_utils.do_backtest(data[stage], best_model, window, data['train'], save_backtest_plot_path)['Return [%]'] / 100
+            "cumulative_return": bt_result['Return [%]'] / 100,
+            "threshold": threshold
         }
-        probs[stage] = {
-            'label_name': label_name,
-        }
-        probs[stage]['probs'] = best_model.predict(Xs[stage], verbose=0).flatten()
 
-    return results, probs['train'], probs['test']
+    return results, probs_dict['train'], probs_dict['test']
 
 
 def run_models(config):
@@ -153,12 +166,14 @@ def run_models(config):
                     labels = model_utils.load_labels(label_path, label_name)
                     Ys[label_stage] = model_utils.get_Y_or_W_day_separated(labels, window_size)
 
-                for weight_name, weight_paths in weights_config.items():
+                for weight_name, weight_props in weights_config.items():
+                    if weight_props is not None and 'class_balance' in weight_props:
+                        use_class_balancing = True
                     Ws = {}
                     if weight_name == 'none':
                         Ws = {key: pd.Series(np.ones_like(Ys[key]), index=Ys[key].index) for key in Ys}
                     else:
-                        for weight_stage, weight_path in weight_paths.items():
+                        for weight_stage, weight_path in weight_props.items():
                             weights = model_utils.load_weights(weight_path, label_name, weight_name)
                             Ws[weight_stage] = model_utils.get_Y_or_W_day_separated(weights, window_size)
 
@@ -175,6 +190,7 @@ def run_models(config):
                             copy.deepcopy(data),
                             copy.deepcopy(Xs), copy.deepcopy(Ys),
                             copy.deepcopy(Ws), copy.deepcopy(hp_dict),
+                            use_class_balancing,
                             model_params['batch_size'], model_params['epochs'],
                             model_params['early_stopping_patience'], model_params['cv_splits'],
                             config['directory'], config['window_size']

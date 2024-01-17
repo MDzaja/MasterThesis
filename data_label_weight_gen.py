@@ -21,7 +21,7 @@ TICKER_SYMBOL = 'AAPL'
 #START_DATE = None#'2000-01-01'
 #END_DATE = None#'2024-01-01'
 INTERVAL = '1m'
-SAMPLE_NUM_BEFORE_PROCESSING = 300000 # 300k
+SAMPLE_NUM_BEFORE_PROCESSING = 210000 # 210k
 
 # 1/7 of data is used for testing, 6/7 for training
 #TRAIN_RATIO = 6 / 7
@@ -32,11 +32,11 @@ MARKET_W = 60
 TREND_W = 2200
 
 CT_TWO_STATE_PARAMS = {
-    'tau': 0.00108
+    'tau': 0.00094
 }
 CT_THREE_STATE_PARAMS = {
-    'tau': 0.002,
-    'w': 19
+    'tau': 0.00202,
+    'w': 18
 }
 FIXED_TIME_HORIZON = {
     'tau': 0,
@@ -99,7 +99,6 @@ def custom_feature_computation(stock_data: pd.DataFrame, market_data: pd.DataFra
         tf = pd.concat([tf, feat_utils.time_features.compute(copy.deepcopy(group), INTERVAL)])
     
     atf = feat_utils.rolling_asset_trend_features.compute(copy.deepcopy(stock_df), market_data, trend_w)
-    print(f'asf: {asf.shape}, ati: {ati.shape}, atm: {atm.shape}, atf: {atf.shape}, tf: {tf.shape}')
 
     # Concatenate all features into one dataframe and remove rows where any of the features are NaN
     feat_df = pd.concat([stock_data, asf, ati, atm, atf, tf], axis=1)

@@ -1,0 +1,3 @@
+CT2; fee=0.0004; tau=0.00094
+CT3; fee=0.0004; tau=0.00202; window=18
+FTH; fee=0.0004; tau=2e-05; H=16
