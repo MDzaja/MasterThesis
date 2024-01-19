@@ -1,0 +1,14 @@
+[
+    {
+        "train_loss": 0.663281238079071,
+        "val_loss": 0.6655054688453674,
+        "train_binary_accuracy": 0.5088238716125488,
+        "val_binary_accuracy": 0.5064277827739716,
+        "train_precision": 0.2889395534992218,
+        "val_precision": 0.0978831946849823,
+        "train_recall": 0.20024852179922165,
+        "val_recall": 0.2,
+        "train_auc": 0.5002652704715729,
+        "val_auc": 0.5009193301200867
+    }
+]

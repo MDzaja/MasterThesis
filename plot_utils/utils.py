@@ -8,6 +8,9 @@ import pandas as pd
 from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 from tabulate import tabulate
+from collections import Counter
+import numpy as np
+from scipy.stats import linregress
 
 
 def plot_labels(title: str, prices: pd.Series, labels_dict: dict):
@@ -56,7 +59,7 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights_dict:
     num_rows = (num_weights + 1) // 2  # +1 for rounding up in integer division
 
     # Create a figure with subplots
-    fig, axes = plt.subplots(num_rows, 2, figsize=(20, 10 * num_rows))#TODO: change figsize
+    fig, axes = plt.subplots(num_rows, 2, figsize=(15, 5 * num_rows))#TODO: change figsize
     # Flatten axes array for easy indexing
     axes = axes.flatten()
 
@@ -204,13 +207,256 @@ def plot_weights_distribution(weights: pd.Series):
     """
     Plots the distribution of weight values.
 
-    :param weights: A pandas Series containing weight values ranging from 0 to 1.
+    :param weights: A pandas Series containing weight values.
     """
     plt.figure(figsize=(8, 6))
-    sns.histplot(weights, kde=True, binwidth=0.05, binrange=(0, 1))
+    sns.histplot(weights, kde=True, binwidth=0.05)#, binrange=(0, 1))
     plt.title('Distribution of Weights')
     plt.xlabel('Weight Value')
     plt.ylabel('Frequency')
-    plt.xlim(0, 1)  # Ensure x-axis is from 0 to 1
+    # plt.xlim(0, 1)  # Ensure x-axis is from 0 to 1
     plt.grid(True)
     plt.show()
+
+
+def plot_returns_distribution(returns_s):
+    """
+    Plots the distribution of interval returns.
+
+    :param returns_s: A pandas Series containing interval returns.
+    """
+    if not isinstance(returns_s, pd.Series):
+        raise TypeError("returns_s must be a pandas Series")
+
+    plt.figure(figsize=(10, 6))
+    plt.hist(returns_s.dropna(), bins=50, alpha=0.7, color='blue', edgecolor='black')
+    
+    plt.title('Distribution of Interval Returns')
+    plt.xlabel('Interval Return')
+    plt.ylabel('Number of Samples')
+    plt.grid(True)
+    plt.show()
+
+
+def aggregate_trend_counts(returns_s: pd.Series):
+    """
+    Aggregates the counts of each unique return value, accounting for trends.
+    
+    :param returns_s: A pandas Series containing interval returns.
+    """
+    trend_counts = {}
+    trend_value = None
+    trend_length = 0
+
+    for value in returns_s.values:
+        if value != trend_value:
+            if trend_value is not None:
+                if trend_value not in trend_counts:
+                    trend_counts[trend_value] = {'sample_num': 0, 'trend_num': 0}
+                trend_counts[trend_value]['sample_num'] += trend_length
+                trend_counts[trend_value]['trend_num'] += 1
+            trend_value = value
+            trend_length = 1
+        else:
+            trend_length += 1
+
+    # Add the last trend
+    if trend_value is not None:
+        if trend_value not in trend_counts:
+            trend_counts[trend_value] = {'sample_num': 0, 'trend_num': 0}
+        trend_counts[trend_value]['sample_num'] += trend_length
+        trend_counts[trend_value]['trend_num'] += 1
+
+    # Convert counts to average number of samples per trend
+    trend_averages = {k: v['sample_num'] / v['trend_num'] for k, v in trend_counts.items()}
+    return trend_averages
+
+def plot_1_aggregated_trend_distribution(returns_s):
+    """
+    Plots the distribution of interval returns showing individual data points on the plot.
+
+    :param returns_s: A pandas Series containing interval returns.
+    """
+    aggregated_counts = aggregate_trend_counts(returns_s.dropna())
+    
+    # Prepare the data for plotting
+    keys = list(aggregated_counts.keys())
+    values = list(aggregated_counts.values())
+
+    plt.figure(figsize=(10, 6))
+    
+    # Plot individual data points
+    plt.scatter(keys, values, color='navy')
+
+    plt.title('Aggregated Trend Distribution of Interval Returns')
+    plt.xlabel('Interval Return')
+    plt.ylabel('Average Number of Samples per Trend')
+    plt.grid(True)
+    plt.show()
+
+
+def plot_2_aggregated_trend_distribution(returns_s, bins=50):
+    """
+    Plots the distribution of interval returns with aggregated trend counts.
+    This time, returns are binned and the average count per bin is plotted.
+
+    :param returns_s: A pandas Series containing interval returns.
+    :param bins: The number of bins to use for the histogram.
+    """
+    aggregated_counts = aggregate_trend_counts(returns_s.dropna())
+    # Convert the dictionary to a Series for easier manipulation
+    aggregated_counts_series = pd.Series(aggregated_counts)
+
+    # Define the bin edges
+    bin_edges = np.linspace(returns_s.min(), returns_s.max(), bins + 1)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+    # Calculate the counts per bin
+    counts_per_bin = np.zeros_like(bin_centers)
+    for i in range(len(bin_edges) - 1):
+        # Find the keys that fall into the current bin range
+        keys_in_bin = aggregated_counts_series.index[(aggregated_counts_series.index >= bin_edges[i]) &
+                                                    (aggregated_counts_series.index < bin_edges[i + 1])]
+        # Calculate the average count for the keys in the current bin
+        if len(keys_in_bin) > 0:
+            counts_per_bin[i] = aggregated_counts_series[keys_in_bin].mean()
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(bin_centers, counts_per_bin, width=np.diff(bin_edges), align='center', color='blue', edgecolor='black')
+
+    plt.title('Aggregated Trend Distribution of Interval Returns')
+    plt.xlabel('Interval Return')
+    plt.ylabel('Average Count per Bin')
+    plt.grid(True)
+    plt.show()
+
+
+def aggregate_trend(returns_s: pd.Series):
+    """
+    Aggregates individual trend counts with their return value.
+
+    :param returns_s: A pandas Series containing interval returns.
+    :returns: A list of tuples, each containing the return value of the trend and its sample number.
+    """
+    trends = []
+    trend_value = returns_s.iloc[0]
+    trend_count = 1  # Start with the first sample
+
+    for value in returns_s.iloc[1:]:
+        if value == trend_value:
+            # Continue the trend
+            trend_count += 1
+        else:
+            # End of the trend, record it
+            trends.append((trend_value, trend_count))
+            # Start a new trend
+            trend_value = value
+            trend_count = 1  # Reset the count for the new trend
+
+    # Catch the last trend if it goes till the end of the series
+    trends.append((trend_value, trend_count))
+
+    return trends
+
+
+def plot_3_aggregated_trend_distribution(returns_s):
+    """
+    Plots each trend with its return value and corresponding sample number.
+
+    :param returns_s: A pandas Series containing interval returns.
+    """
+    trends = aggregate_trend(returns_s.dropna())
+
+    # Unpack the trend data
+    returns, samples = zip(*trends)
+
+    plt.figure(figsize=(10, 6))
+    
+    # Plot individual trends
+    plt.scatter(returns, samples, color='navy')
+
+    plt.title('Individual Trend Distribution of Interval Returns')
+    plt.xlabel('Interval Return')
+    plt.ylabel('Number of Samples in Trend')
+    plt.grid(True)
+    plt.show()
+
+
+def plot_4_aggregated_trend_distribution(title, returns_s):
+    """
+    Plots each trend with its return value and corresponding sample number
+    along with a linear regression line.
+    
+    :param returns_s: A pandas Series containing interval returns.
+    """
+    trends = aggregate_trend(returns_s.dropna())
+
+    # Unpack the trend data
+    returns, samples = zip(*trends)
+
+    # Perform linear regression
+    slope, intercept, r_value, p_value, std_err = linregress(returns, samples)
+
+    # Create a range of x values for the line of best fit
+    x = np.array(returns)
+    y = slope * x + intercept
+
+    plt.figure(figsize=(10, 6))
+    
+    # Plot individual trends as scatter points
+    plt.scatter(returns, samples, color='navy', label='Trend Data')
+
+    # Plot the line of best fit
+    plt.plot(x, y, color='red', label=f'Linear Regression (r^2 = {r_value ** 2:.2f})')
+
+    plt.title(title)
+    plt.xlabel('Weight value')
+    plt.ylabel('Number of Samples')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def print_highlighted_LW_table(metrics_dict, metric_name, metric_key, data_type):
+    def parse_combination_name(name):
+        parts = name.split(';')
+        return {p.split('-')[0]: p.split('-')[1] for p in parts}
+
+    def flatten_data():
+        flattened_data = []
+        for combination, data in metrics_dict.items():
+            parsed_name = parse_combination_name(combination)
+            for _data_type, metrics in data.items():
+                if _data_type != data_type:
+                    continue
+                row = [combination]
+                row.extend([parsed_name['D'], parsed_name['M'], parsed_name['L'], parsed_name['W'], _data_type])
+                row.extend([metrics[metric_key]])
+                flattened_data.append(row)
+        return flattened_data
+
+    flattened_data = flatten_data()
+    columns = ['Combination', 'Data', 'Model', 'Label', 'Weight', 'Data_Type', metric_name]
+    metrics_df = pd.DataFrame(flattened_data, columns=columns)
+    # Pivot the DataFrame
+    pivot_df = metrics_df.pivot(index='Label', columns='Weight', values=metric_name)
+
+    highlighted_df = pivot_df.copy()
+
+    # Function to add a marker to the maximum values
+    def mark_max(row):
+        max_val = row.max()
+        return row.apply(lambda x: f"**{x}**" if x == max_val else x)
+
+    # Apply the function across the DataFrame rows
+    highlighted_df = highlighted_df.apply(mark_max, axis=1)
+
+    none_columns = [col for col in pivot_df.columns if 'none' in col]
+    trend_interval_columns = [col for col in pivot_df.columns if 'trend_interval' in col]
+    other_columns = [col for col in pivot_df.columns if col not in none_columns + trend_interval_columns]
+    new_order = none_columns + trend_interval_columns + other_columns
+    reordered_df = highlighted_df[new_order]
+
+    print(f"Table for {metric_name}:")
+    print(tabulate(reordered_df, headers='keys', tablefmt='psql', showindex=True))
+    print()

@@ -1,0 +1,17 @@
+2024-01-18 17:19:18 - Trial 1 finished: Best score = -0.5229300498962403
+2024-01-18 17:39:48 - Trial 2 finished: Best score = -0.5229300498962403
+2024-01-18 18:01:31 - Trial 3 finished: Best score = -0.5229300498962403
+2024-01-18 18:17:25 - Trial 4 finished: Best score = -0.5229300498962403
+2024-01-18 18:35:05 - Trial 5 finished: Best score = -0.5229300498962403
+2024-01-18 18:50:41 - Trial 6 finished: Best score = -0.5229300498962403
+2024-01-18 19:15:28 - Trial 7 finished: Best score = -0.5229300498962403
+2024-01-18 19:59:46 - Trial 8 finished: Best score = -0.5229300498962403
+2024-01-18 20:41:39 - Trial 9 finished: Best score = -0.5229300498962403
+2024-01-18 21:39:21 - Trial 10 finished: Best score = -0.5292689085006714
+2024-01-18 22:03:31 - Trial 10 finished: Best score = -0.5292689085006714
+2024-01-18 22:34:26 - Trial 11 finished: Best score = -0.5292689085006714
+2024-01-18 22:50:44 - Trial 12 finished: Best score = -0.5292689085006714
+2024-01-18 23:15:36 - Trial 12 finished: Best score = -0.5292689085006714
+2024-01-18 23:37:20 - Trial 13 finished: Best score = -0.5292689085006714
+2024-01-19 00:09:40 - Trial 14 finished: Best score = -0.5292689085006714
+2024-01-19 00:25:39 - Trial 15 finished: Best score = -0.5292689085006714

@@ -54,13 +54,13 @@ def test_model(data_type, label_name, weight_name, model_name,
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     
-    model_save_path = f"{directory}/saved_models/{data_type}-{label_name}-{weight_name}-{model_name}.keras"
+    model_save_path = f"{directory}/saved_models/{data_type}-{label_name}-{'CB_' if use_class_balancing else ''}{weight_name}-{model_name}.keras"
     if os.path.exists(model_save_path):
         best_model = load_model(model_save_path)
         best_model.compile()
-        print(f"Loaded {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
+        print(f"Loaded {model_name} on {data_type} data with {label_name} labeling and {'CB_' if use_class_balancing else ''}{weight_name} weighting.", flush=True)
     else:
-        print(f"Training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting...", flush=True)
+        print(f"Training {model_name} on {data_type} data with {label_name} labeling and {'CB_' if use_class_balancing else ''}{weight_name} weighting...", flush=True)
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"Current time: {current_datetime}", flush=True)
         mean_metrics, best_model = model_utils.custom_cross_val(hp_dict, Xs['train'], Ys['train'], Ws['train'],
@@ -70,7 +70,7 @@ def test_model(data_type, label_name, weight_name, model_name,
                                                                         useWeightsForEval=False,
                                                                         useClassBalance=use_class_balancing,
                                                                         verbosity_level=0)
-        print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {weight_name} weighting.", flush=True)
+        print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {'CB_' if use_class_balancing else ''}{weight_name} weighting.", flush=True)
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"Current time: {current_datetime}", flush=True)
 
@@ -99,7 +99,7 @@ def test_model(data_type, label_name, weight_name, model_name,
     for stage in ['train', 'test']:
         name = f'best_model_{stage}'
         eval_results = best_model.evaluate(Xs[stage], Ys[stage], verbose=0)
-        save_backtest_plot_path = f"{directory}/backtests/{data_type}-{label_name}-{weight_name}-{model_name}-{stage}.html"
+        save_backtest_plot_path = f"{directory}/backtests/{data_type}-{label_name}-{'CB_' if use_class_balancing else ''}{weight_name}-{model_name}-{stage}.html"
 
         probs_dict[stage] = {
             'label_name': label_name,
@@ -126,15 +126,16 @@ def test_model(data_type, label_name, weight_name, model_name,
 
 def run_models(config):
     metrics = {}
-    probs_train = {}
-    probs_test = {}
-    window_size = config['window_size']
-
-    try:
+    if os.path.exists(f'{config["directory"]}/metrics.json'):
         with open(f'{config["directory"]}/metrics.json', 'r') as file:
-            processed_combinations = json.load(file).keys()
-    except FileNotFoundError:
-        processed_combinations = []
+            metrics = json.load(file)
+    probs_train = {}
+    if os.path.exists(f'{config["directory"]}/train_probs.pkl'):
+        probs_train = pd.read_pickle(f'{config["directory"]}/train_probs.pkl')
+    probs_test = {}
+    if os.path.exists(f'{config["directory"]}/test_probs.pkl'):
+        probs_test = pd.read_pickle(f'{config["directory"]}/test_probs.pkl')
+    window_size = config['window_size']
 
     for combination in config['combinations']:
         data_config = combination['data']
@@ -169,19 +170,24 @@ def run_models(config):
                 for weight_name, weight_props in weights_config.items():
                     if weight_props is not None and 'class_balance' in weight_props:
                         use_class_balancing = True
+                    else:
+                        use_class_balancing = False
+                        
                     Ws = {}
                     if weight_name == 'none':
                         Ws = {key: pd.Series(np.ones_like(Ys[key]), index=Ys[key].index) for key in Ys}
                     else:
                         for weight_stage, weight_path in weight_props.items():
+                            if weight_stage == 'class_balance':
+                                continue
                             weights = model_utils.load_weights(weight_path, label_name, weight_name)
                             Ws[weight_stage] = model_utils.get_Y_or_W_day_separated(weights, window_size)
 
                     for model_name, model_params in model_config.items():
                         hp_dict = model_utils.load_hyperparameters(model_params['hyperparameters'])
                         
-                        comb_name = f'D-{data_type};L-{label_name};W-{weight_name};M-{model_name}'
-                        if comb_name in processed_combinations:
+                        comb_name = f'D-{data_type};L-{label_name};W-{"CB_" if use_class_balancing else ""}{weight_name};M-{model_name}'
+                        if comb_name in metrics.keys():
                             print(f"Skipping {comb_name} because it has already been processed.", flush=True)
                             continue
 

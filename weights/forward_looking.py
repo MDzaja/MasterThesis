@@ -17,7 +17,7 @@ def get_weights(prices: pd.Series, labels: pd.Series) -> pd.Series:
                 weights.iloc[j] = abs(prices.iloc[trend_end_i] / prices.iloc[j] - 1)
             trend_start_i = i
 
-    # Scale the weights to sum to weights.shape[0]
+    # Scale the weights to sum of weights.shape[0]
     weights = weights / weights.sum() * weights.shape[0]
 
     return weights
