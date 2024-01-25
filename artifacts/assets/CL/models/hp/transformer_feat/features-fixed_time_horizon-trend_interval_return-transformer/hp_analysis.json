@@ -1,0 +1,100 @@
+{
+    "num_transformer_blocks": {
+        "average": 2.2857142857142856,
+        "median": 2.0,
+        "max": 3,
+        "min": 2,
+        "90th_percentile": 3.0
+    },
+    "head_size": {
+        "average": 137.0,
+        "median": 130.0,
+        "max": 218,
+        "min": 56,
+        "90th_percentile": 217.4
+    },
+    "num_heads": {
+        "average": 4.571428571428571,
+        "median": 4.0,
+        "max": 8,
+        "min": 4,
+        "90th_percentile": 5.600000000000001
+    },
+    "ff_dim": {
+        "average": 43.714285714285715,
+        "median": 51.0,
+        "max": 59,
+        "min": 19,
+        "90th_percentile": 57.2
+    },
+    "transformer_dropout": {
+        "average": 0.2634679282543705,
+        "median": 0.269887818034284,
+        "max": 0.43966320031072725,
+        "min": 0.016407219074041638,
+        "90th_percentile": 0.43570790349255006
+    },
+    "num_mlp_layers": {
+        "average": 2.2857142857142856,
+        "median": 2.0,
+        "max": 3,
+        "min": 2,
+        "90th_percentile": 3.0
+    },
+    "mlp_units_0": {
+        "average": 277.57142857142856,
+        "median": 310.0,
+        "max": 395,
+        "min": 69,
+        "90th_percentile": 389.6
+    },
+    "mlp_dropout": {
+        "average": 0.277174897618021,
+        "median": 0.23545498971279755,
+        "max": 0.4981434453554183,
+        "min": 0.05649058901067751,
+        "90th_percentile": 0.4818276221298322
+    },
+    "learning_rate": {
+        "average": 0.010524652117505643,
+        "median": 0.0034945375241336196,
+        "max": 0.03734187358973619,
+        "min": 0.00017726332296697666,
+        "90th_percentile": 0.030735746413319227
+    },
+    "decay_steps": {
+        "average": 7037.142857142857,
+        "median": 9536.0,
+        "max": 9971,
+        "min": 1910,
+        "90th_percentile": 9871.4
+    },
+    "decay_rate": {
+        "average": 0.8888976017658264,
+        "median": 0.8989831688434354,
+        "max": 0.9722922873918354,
+        "min": 0.8254236801149747,
+        "90th_percentile": 0.9442031431157023
+    },
+    "mlp_units_1": {
+        "average": 248.57142857142858,
+        "median": 179.0,
+        "max": 503,
+        "min": 33,
+        "90th_percentile": 472.40000000000003
+    },
+    "mlp_units_2": {
+        "average": 166.14285714285714,
+        "median": 167.0,
+        "max": 264,
+        "min": 68,
+        "90th_percentile": 232.8
+    },
+    "mlp_units_3": {
+        "average": 299.42857142857144,
+        "median": 385.0,
+        "max": 411,
+        "min": 49,
+        "90th_percentile": 408.0
+    }
+}

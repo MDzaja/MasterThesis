@@ -14,12 +14,12 @@ from labels import fixed_time_horizon as fth
 from labels import triple_barrier as tb
 from models import utils as model_utils
 
-prices = model_utils.load_data('/home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/feat/train_1m_2010-10-11_2012-11-06.csv')['Close']
+prices = model_utils.load_data('/home/mdzaja/MasterThesis/artifacts/assets/CL/data/feat/train_1m_2011-01-10_2012-11-06.csv')['Close']
 prices.index = prices.index.tz_localize(None)
 
 fee = 0.0004
 num_threads = 16
-file_store = '../artifacts/label_params/AAOL_new_minute_data.txt'
+file_store = '../artifacts/label_params/CL_new_minute_data.txt'
 
 # CT2
 print('Optimizing CT2')

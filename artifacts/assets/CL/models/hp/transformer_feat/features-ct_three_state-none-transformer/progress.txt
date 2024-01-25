@@ -1,0 +1,4 @@
+2024-01-22 21:26:05 - Trial 1 finished: Best score = -0.5552081227302551
+2024-01-22 21:41:24 - Trial 2 finished: Best score = -0.5552081227302551
+2024-01-22 22:04:20 - Trial 3 finished: Best score = -0.6677441358566284
+2024-01-22 22:54:08 - Trial 4 finished: Best score = -0.8958466410636902

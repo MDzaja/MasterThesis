@@ -48,13 +48,13 @@ def hp_opt_cv(build_model_gp, search_space, X, Y, W, directory, use_class_balanc
                               n_random=initial_random_trials,
                               )
     
-    early_stopper = CustomEarlyStopper(-0.8)
+    #early_stopper = CustomEarlyStopper(-0.8)
 
     np.int = np.int64
     result = gp_minimize(func=partial_objective, dimensions=search_space,
                          n_calls=max(trial_num - len(x0) if x0 is not None else trial_num, 1),
                          n_initial_points=max(initial_random_trials - len(x0) if x0 is not None else trial_num, 0),
-                         x0=x0, y0=y0, callback=[tracker, checkpoint_saver, early_stopper], verbose=True)
+                         x0=x0, y0=y0, callback=[tracker, checkpoint_saver], verbose=True)
 
     # Process results for hyperparameter analysis
     hyperparam_analysis = process_hyperparams(result, search_space)

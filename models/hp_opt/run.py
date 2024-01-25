@@ -53,9 +53,14 @@ def main(config):
             all_weights = {wn: weights_config['all'] for wn in all_weight_names}
             weights_config = {**all_weights, **{k: v for k, v in weights_config.items() if k != 'all'}}
 
-        for data_type, data_path in data_config.items():
+        for data_type, data_props in data_config.items():
             # Load data
-            data = model_utils.load_data(data_path['path'])
+            data = model_utils.load_data(data_props['path'])
+            if data_props['drop_duplicates']:
+                data.drop_duplicates(inplace=True)
+            if data_props['drop_zero_volume']:
+                data = data[data['Volume'] != 0]
+
             X = model_utils.get_X_day_separated(data, window_size)
 
             for label_name, label_path in label_config.items():

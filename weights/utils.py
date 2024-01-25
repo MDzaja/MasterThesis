@@ -12,7 +12,7 @@ from weights import forward_looking as fl
 from weights import sequential_return as sr
 from weights import trend_interval_return as tir
 
-def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.Series):
+def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.Series, color: str='blue'):
     # Get union of indices
     union_index = prices.index.union(labels.index).union(weights.index)
     # Reindex all series to this union of indices
@@ -46,9 +46,9 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights: pd.S
     # Create the second axis for weights
     ax2 = ax1.twinx()
     # Plot weights on ax2
-    ax2.plot(union_index, weights_, color='blue', label='Predictions', linestyle='-', marker='.')#TODO label='Weights'
-    ax2.set_ylabel('Weights', color='blue')
-    ax2.tick_params(axis='y', labelcolor='blue')
+    ax2.plot(union_index, weights_, color=color, label='Weights', linestyle='-', marker='.')
+    ax2.set_ylabel('Weights', color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
 
     # Adjusting legend
     fig.tight_layout()

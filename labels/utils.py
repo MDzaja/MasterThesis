@@ -20,7 +20,7 @@ from labels import oracle
 from labels import triple_barrier as tb
 
 
-def plot_labels(title: str, prices: pd.Series, labels: pd.Series):
+def plot_labels(title: str, prices: pd.Series, labels: pd.Series, color: str='orange'):
     # Get union of indices
     union_index = prices.index.union(labels.index)
     # Reindex both series to this union of indices
@@ -34,12 +34,12 @@ def plot_labels(title: str, prices: pd.Series, labels: pd.Series):
     ax1.set_title(title)
     ax1.tick_params(axis='y', labelcolor='black')
     # Format x-axis to only show time
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y', tz=None))
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
 
     # Create the second axis
     ax2 = ax1.twinx()
     # Plot labels on ax2
-    ax2.plot(union_index, labels_, color='orange', label='Trend labels', linestyle='-', marker='.')
+    ax2.plot(union_index, labels_, color=color, label='Trend labels', linestyle='-', marker='.')
     ax2.set_ylabel('Label', color='black')
     ax2.yaxis.set_major_locator(MultipleLocator(1))
 
