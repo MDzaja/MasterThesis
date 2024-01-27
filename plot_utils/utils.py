@@ -113,9 +113,10 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights_dict:
     plt.show()
 
 
-def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves'):
+def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves', exclude_auc_less_than=0):
     """
     Plot the ROC curves for given true labels and multiple sets of probability estimates.
+    Exclude curves with an area under the curve (AUC) less than 0.55.
 
     Parameters:
     true_y_dict (dict): A dictionary where keys are label names and values are the true class values.
@@ -125,7 +126,7 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves'):
     Returns:
     None: The function will plot the ROC curve for each model.
     """
-    plt.figure()
+    plt.figure(figsize=(15, 15))
 
     # Iterate over each model's predictions and plot their ROC curve
     for model_name, model_data in y_prob_dict.items():
@@ -135,7 +136,10 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves'):
 
         fpr, tpr, _ = roc_curve(y_test, y_score)
         roc_auc = auc(fpr, tpr)
-        plt.plot(fpr, tpr, lw=2, label=f'{model_name} (area = {roc_auc:.2f})')
+        
+        # Check if the AUC is greater than or equal to 0.55 before plotting
+        if roc_auc >= exclude_auc_less_than:
+            plt.plot(fpr, tpr, lw=2, label=f'{model_name} (area = {roc_auc:.2f})')
 
     # Add plot formatting
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -149,6 +153,7 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves'):
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.show()
+
 
 def plot_acc_auc(metrics_dict, x_title, y_title, x_key, y_key, data_types):
     def parse_combination_name(name):
@@ -203,22 +208,6 @@ def plot_acc_auc(metrics_dict, x_title, y_title, x_key, y_key, data_types):
         print(f"DataFrame for {data_type}:\n{tabulate(subset, headers='keys', tablefmt='psql', showindex=False)}")
 
 
-def plot_weights_distribution(weights: pd.Series):
-    """
-    Plots the distribution of weight values.
-
-    :param weights: A pandas Series containing weight values.
-    """
-    plt.figure(figsize=(8, 6))
-    sns.histplot(weights, kde=True, binwidth=0.05)#, binrange=(0, 1))
-    plt.title('Distribution of Weights')
-    plt.xlabel('Weight Value')
-    plt.ylabel('Frequency')
-    # plt.xlim(0, 1)  # Ensure x-axis is from 0 to 1
-    plt.grid(True)
-    plt.show()
-
-
 def plot_returns_distribution(returns_s):
     """
     Plots the distribution of interval returns.
@@ -238,100 +227,7 @@ def plot_returns_distribution(returns_s):
     plt.show()
 
 
-def aggregate_trend_counts(returns_s: pd.Series):
-    """
-    Aggregates the counts of each unique return value, accounting for trends.
-    
-    :param returns_s: A pandas Series containing interval returns.
-    """
-    trend_counts = {}
-    trend_value = None
-    trend_length = 0
-
-    for value in returns_s.values:
-        if value != trend_value:
-            if trend_value is not None:
-                if trend_value not in trend_counts:
-                    trend_counts[trend_value] = {'sample_num': 0, 'trend_num': 0}
-                trend_counts[trend_value]['sample_num'] += trend_length
-                trend_counts[trend_value]['trend_num'] += 1
-            trend_value = value
-            trend_length = 1
-        else:
-            trend_length += 1
-
-    # Add the last trend
-    if trend_value is not None:
-        if trend_value not in trend_counts:
-            trend_counts[trend_value] = {'sample_num': 0, 'trend_num': 0}
-        trend_counts[trend_value]['sample_num'] += trend_length
-        trend_counts[trend_value]['trend_num'] += 1
-
-    # Convert counts to average number of samples per trend
-    trend_averages = {k: v['sample_num'] / v['trend_num'] for k, v in trend_counts.items()}
-    return trend_averages
-
-def plot_1_aggregated_trend_distribution(returns_s):
-    """
-    Plots the distribution of interval returns showing individual data points on the plot.
-
-    :param returns_s: A pandas Series containing interval returns.
-    """
-    aggregated_counts = aggregate_trend_counts(returns_s.dropna())
-    
-    # Prepare the data for plotting
-    keys = list(aggregated_counts.keys())
-    values = list(aggregated_counts.values())
-
-    plt.figure(figsize=(10, 6))
-    
-    # Plot individual data points
-    plt.scatter(keys, values, color='navy')
-
-    plt.title('Aggregated Trend Distribution of Interval Returns')
-    plt.xlabel('Interval Return')
-    plt.ylabel('Average Number of Samples per Trend')
-    plt.grid(True)
-    plt.show()
-
-
-def plot_2_aggregated_trend_distribution(returns_s, bins=50):
-    """
-    Plots the distribution of interval returns with aggregated trend counts.
-    This time, returns are binned and the average count per bin is plotted.
-
-    :param returns_s: A pandas Series containing interval returns.
-    :param bins: The number of bins to use for the histogram.
-    """
-    aggregated_counts = aggregate_trend_counts(returns_s.dropna())
-    # Convert the dictionary to a Series for easier manipulation
-    aggregated_counts_series = pd.Series(aggregated_counts)
-
-    # Define the bin edges
-    bin_edges = np.linspace(returns_s.min(), returns_s.max(), bins + 1)
-    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
-
-    # Calculate the counts per bin
-    counts_per_bin = np.zeros_like(bin_centers)
-    for i in range(len(bin_edges) - 1):
-        # Find the keys that fall into the current bin range
-        keys_in_bin = aggregated_counts_series.index[(aggregated_counts_series.index >= bin_edges[i]) &
-                                                    (aggregated_counts_series.index < bin_edges[i + 1])]
-        # Calculate the average count for the keys in the current bin
-        if len(keys_in_bin) > 0:
-            counts_per_bin[i] = aggregated_counts_series[keys_in_bin].mean()
-
-    plt.figure(figsize=(10, 6))
-    plt.bar(bin_centers, counts_per_bin, width=np.diff(bin_edges), align='center', color='blue', edgecolor='black')
-
-    plt.title('Aggregated Trend Distribution of Interval Returns')
-    plt.xlabel('Interval Return')
-    plt.ylabel('Average Count per Bin')
-    plt.grid(True)
-    plt.show()
-
-
-def aggregate_trend(returns_s: pd.Series):
+def aggregate_values(returns_s: pd.Series):
     """
     Aggregates individual trend counts with their return value.
 
@@ -359,61 +255,57 @@ def aggregate_trend(returns_s: pd.Series):
     return trends
 
 
-def plot_3_aggregated_trend_distribution(returns_s):
+def single_plot_value_occurrences_with_regression(title, returns_s, x_name):
+    title_list = [title]
+    returns_series_list = [returns_s]
+    plot_value_occurrences_with_regression(title_list, returns_series_list, x_name)
+
+
+def plot_value_occurrences_with_regression(titles, returns_series_list, x_name):
     """
-    Plots each trend with its return value and corresponding sample number.
-
-    :param returns_s: A pandas Series containing interval returns.
-    """
-    trends = aggregate_trend(returns_s.dropna())
-
-    # Unpack the trend data
-    returns, samples = zip(*trends)
-
-    plt.figure(figsize=(10, 6))
+    Plots multiple trends with their return value and corresponding sample number
+    along with a linear regression line in a subplot layout.
     
-    # Plot individual trends
-    plt.scatter(returns, samples, color='navy')
-
-    plt.title('Individual Trend Distribution of Interval Returns')
-    plt.xlabel('Interval Return')
-    plt.ylabel('Number of Samples in Trend')
-    plt.grid(True)
-    plt.show()
-
-
-def plot_4_aggregated_trend_distribution(title, returns_s):
+    :param titles: A list of titles for each subplot.
+    :param returns_series_list: A list of pandas Series containing interval returns for each subplot.
     """
-    Plots each trend with its return value and corresponding sample number
-    along with a linear regression line.
+    num_plots = len(titles)
+    num_rows = (num_plots + 1) // 2
+    fig, axs = plt.subplots(num_rows, 2, figsize=(15, num_rows * 6))
     
-    :param returns_s: A pandas Series containing interval returns.
-    """
-    trends = aggregate_trend(returns_s.dropna())
-
-    # Unpack the trend data
-    returns, samples = zip(*trends)
-
-    # Perform linear regression
-    slope, intercept, r_value, p_value, std_err = linregress(returns, samples)
-
-    # Create a range of x values for the line of best fit
-    x = np.array(returns)
-    y = slope * x + intercept
-
-    plt.figure(figsize=(10, 6))
+    # Flatten the array of axes for easy iteration
+    axs = axs.flatten()
     
-    # Plot individual trends as scatter points
-    plt.scatter(returns, samples, color='navy', label='Trend Data')
+    for i, returns_s in enumerate(returns_series_list):
+        agg_values = aggregate_values(returns_s.dropna())
 
-    # Plot the line of best fit
-    plt.plot(x, y, color='red', label=f'Linear Regression (r^2 = {r_value ** 2:.2f})')
+        # Unpack the trend data
+        values, samples = zip(*agg_values)
 
-    plt.title(title)
-    plt.xlabel('Weight value')
-    plt.ylabel('Number of Samples')
-    plt.legend()
-    plt.grid(True)
+        # Perform linear regression
+        slope, intercept, r_value, p_value, std_err = linregress(values, samples)
+
+        # Create a range of x values for the line of best fit
+        x = np.array(values)
+        y = slope * x + intercept
+        
+        # Plot individual trends as scatter points
+        axs[i].scatter(values, samples, color='navy')
+
+        # Plot the line of best fit
+        axs[i].plot(x, y, color='red', label=f'Linear Regression (r^2 = {r_value ** 2:.2f})')
+
+        axs[i].set_title(titles[i])
+        axs[i].set_xlabel(x_name)
+        axs[i].set_ylabel('Number of Samples')
+        axs[i].legend()
+        axs[i].grid(True)
+    
+    # Hide any unused subplots
+    for j in range(i + 1, len(axs)):
+        axs[j].set_visible(False)
+
+    plt.tight_layout()
     plt.show()
 
 

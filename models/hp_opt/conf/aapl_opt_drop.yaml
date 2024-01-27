@@ -30,7 +30,7 @@ combinations:
         batch_size: 128
         epochs: 150
         early_stopping_patience: 30
-        trial_num: 30
+        trial_num: 20
         initial_random_trials: 5
         cv_splits: 5 # Number of cross-validation splits, must be at least 2
   
@@ -59,6 +59,6 @@ combinations:
         batch_size: 128
         epochs: 150
         early_stopping_patience: 30
-        trial_num: 30
+        trial_num: 20
         initial_random_trials: 5
         cv_splits: 5 # Number of cross-validation splits, must be at least 2
