@@ -56,9 +56,9 @@ def main(config):
         for data_type, data_props in data_config.items():
             # Load data
             data = model_utils.load_data(data_props['path'])
-            if data_props['drop_duplicates']:
+            if 'drop_duplicates' in data_props:
                 data.drop_duplicates(inplace=True)
-            if data_props['drop_zero_volume']:
+            if 'drop_zero_volume' in data_props:
                 data = data[data['Volume'] != 0]
 
             X = model_utils.get_X_day_separated(data, window_size)

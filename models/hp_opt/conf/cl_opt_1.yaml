@@ -38,3 +38,38 @@ combinations:
         trial_num: 15
         initial_random_trials: 5
         cv_splits: 5 # Number of cross-validation splits, must be at least 2
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        path: *label_common_path
+      ct_three_state:
+        path: *label_common_path
+      fixed_time_horizon:
+        path: *label_common_path
+      oracle:
+        path: *label_common_path
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        class_balance:
+        path: *weights_common_path
+      forward_looking:
+        class_balance:
+        path: *weights_common_path
+      none:
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        path: *features_common_path
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      transformer:
+        batch_size: 128
+        epochs: 150
+        early_stopping_patience: 15
+        trial_num: 15
+        initial_random_trials: 5
+        cv_splits: 5 # Number of cross-validation splits, must be at least 2

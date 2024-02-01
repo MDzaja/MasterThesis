@@ -150,7 +150,7 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves', exclud
     plt.title(title)
 
     # Move the legend out of the plot, to the right of the plot, centered vertically
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='large')
 
     plt.show()
 
@@ -352,3 +352,24 @@ def print_highlighted_LW_table(metrics_dict, metric_name, metric_key, data_type)
     print(f"Table for {metric_name}:")
     print(tabulate(reordered_df, headers='keys', tablefmt='psql', showindex=True))
     print()
+
+
+def plot_series(probs1, probs2, series_name_1, series_name_2, title):
+    plt.figure(figsize=(10, 6))
+    
+    # Plotting the first series in blue
+    plt.plot(probs1, color='blue', label=series_name_1)
+    
+    # Plotting the second series in orange
+    plt.plot(probs2, color='orange', label=series_name_2)
+    
+    # Adding title and labels
+    plt.title(title)
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    
+    # Show legend
+    plt.legend()
+    
+    # Display the plot
+    plt.show()

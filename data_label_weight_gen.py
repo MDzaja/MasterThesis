@@ -17,7 +17,7 @@ from weights import sequential_return as sr
 from weights import trend_interval_return as tir
 
 
-TICKER_SYMBOL = 'CL'
+TICKER_SYMBOL = 'AAPL'
 #START_DATE = None#'2000-01-01'
 #END_DATE = None#'2024-01-01'
 INTERVAL = '1m'
@@ -115,9 +115,9 @@ if __name__ == '__main__':
     #########################################
     # DOWNLOAD DATA AND COMPUTE FEATURES
     #########################################
-    stock_df = read_csvs_to_dataframe(f'/home/mdzaja/MasterThesis/artifacts/unprocessed_data/{TICKER_SYMBOL}')[:SAMPLE_NUM_BEFORE_PROCESSING]
+    stock_df = read_csvs_to_dataframe(f'/home/mdzaja/MasterThesis/artifacts/unprocessed_data/{TICKER_SYMBOL}')[:'2012-12-10']
     original_stock_df = copy.deepcopy(stock_df)
-    market_df = read_csvs_to_dataframe(f'/home/mdzaja/MasterThesis/artifacts/unprocessed_data/SPX').iloc[:SAMPLE_NUM_BEFORE_PROCESSING]
+    market_df = read_csvs_to_dataframe(f'/home/mdzaja/MasterThesis/artifacts/unprocessed_data/SPX')[:'2012-12-10']
     print(f'Loaded {stock_df.shape} stock data and {market_df.shape} market data')
 
     # Adjust timezone localization
@@ -141,16 +141,23 @@ if __name__ == '__main__':
     feat_df = feat_df.reindex(common_index)
 
     # Split data into train and test sets where test set is the 10 working days
-    unique_dates = stock_df.index.normalize().unique()
-    last_10_working_days = unique_dates[-10:]
-    train_mask = stock_df.index.normalize().isin(unique_dates[:-10])
-    test_mask = stock_df.index.normalize().isin(last_10_working_days)
+    # Define your date ranges
+    train_start = '2010-10-11'
+    train_end = '2012-11-06'
+    calibration_start = '2012-11-07'
+    calibration_end = '2012-11-20'
 
-    # Split data into train and test sets
-    train_raw_df = stock_df[train_mask]
-    test_raw_df = stock_df[test_mask]
-    train_feat_df = feat_df[train_mask]
-    test_feat_df = feat_df[test_mask]
+    # Split the dataframe into train and calibration
+    train_raw_df = stock_df[train_start:train_end]
+    train_feat_df = feat_df[train_start:train_end]
+    calibration_raw_df = stock_df[calibration_start:calibration_end]
+    calibration_feat_df = feat_df[calibration_start:calibration_end]
+
+    # For the test set, use the last 10 days present in the data after calibration_end
+    distinct_days_after_calibration = stock_df[calibration_end:].resample('D').first().dropna().index
+    test_days = distinct_days_after_calibration[1:11]
+    test_raw_df = stock_df.loc[test_days[0]:test_days[-1]]
+    test_feat_df = feat_df.loc[test_days[0]:test_days[-1]]
 
     #########################################
     # COMPUTE LABELS
@@ -160,7 +167,7 @@ if __name__ == '__main__':
         'ct_three_state': pd.Series(dtype=np.int64),
         'fixed_time_horizon': pd.Series(dtype=np.int64),
         'oracle': pd.Series(dtype=np.int64),
-        'triple_barrier': pd.Series(dtype=np.int64)
+        # 'triple_barrier': pd.Series(dtype=np.int64)
     }
     prices = original_stock_df['Close']
 
@@ -186,27 +193,30 @@ if __name__ == '__main__':
                                             fee=ORACLE_PARAMS['fee']).dropna()
         labels_dict['oracle'] = pd.concat([labels_dict['oracle'], oracle_lbl])
 
-        tEvents = group.index
-        t1 = group.index.searchsorted(tEvents + pd.Timedelta(days=TRIPLE_BARRIER_PARAMS['f1_window']))
-        t1 = pd.Series((group.index[i] if i < group.shape[0] else pd.NaT for i in t1), index=tEvents)
-        volatility = tb.getVolatility(group, span=TRIPLE_BARRIER_PARAMS['vol_span'])
-        volatility = volatility.reindex(tEvents).loc[tEvents].fillna(method='bfill')
-        triple_barrier_lbl = tb.binary_trend_labels(group,
-                                                tEvents,
-                                                pt=TRIPLE_BARRIER_PARAMS['pt'], 
-                                                sl=TRIPLE_BARRIER_PARAMS['sl'], 
-                                                volatility=volatility, 
-                                                minRet=0, 
-                                                t1=t1).dropna()
-        labels_dict['triple_barrier'] = pd.concat([labels_dict['triple_barrier'], triple_barrier_lbl])
+        # tEvents = group.index
+        # t1 = group.index.searchsorted(tEvents + pd.Timedelta(days=TRIPLE_BARRIER_PARAMS['f1_window']))
+        # t1 = pd.Series((group.index[i] if i < group.shape[0] else pd.NaT for i in t1), index=tEvents)
+        # volatility = tb.getVolatility(group, span=TRIPLE_BARRIER_PARAMS['vol_span'])
+        # volatility = volatility.reindex(tEvents).loc[tEvents].fillna(method='bfill')
+        # triple_barrier_lbl = tb.binary_trend_labels(group,
+        #                                         tEvents,
+        #                                         pt=TRIPLE_BARRIER_PARAMS['pt'], 
+        #                                         sl=TRIPLE_BARRIER_PARAMS['sl'], 
+        #                                         volatility=volatility, 
+        #                                         minRet=0, 
+        #                                         t1=t1).dropna()
+        # labels_dict['triple_barrier'] = pd.concat([labels_dict['triple_barrier'], triple_barrier_lbl])
 
     train_labels_dict = {}
+    calibration_labels_dict = {}
     test_labels_dict = {}
 
     for key in labels_dict.keys():
         labels_dict[key].dropna(inplace=True)
         train_indices = labels_dict[key].index.intersection(train_raw_df.index)
         train_labels_dict[key] = labels_dict[key].loc[train_indices]
+        calibration_indices = labels_dict[key].index.intersection(calibration_raw_df.index)
+        calibration_labels_dict[key] = labels_dict[key].loc[calibration_indices]
         test_indices = labels_dict[key].index.intersection(test_raw_df.index)
         test_labels_dict[key] = labels_dict[key].loc[test_indices]
 
@@ -239,15 +249,19 @@ if __name__ == '__main__':
                                             tir.get_weights(prices.loc[group.index], group)])
 
     train_weights_dict = {}
+    calibration_weights_dict = {}
     test_weights_dict = {}
 
     for label_name, weights in weights_dict.items():
         train_weights_dict[label_name] = {}
+        calibration_weights_dict[label_name] = {}
         test_weights_dict[label_name] = {}
         for weight_name, weight in weights.items():
             weight.dropna(inplace=True)
             train_indices = weight.index.intersection(train_raw_df.index)
             train_weights_dict[label_name][weight_name] = weight.loc[train_indices]
+            calibration_indices = weight.index.intersection(calibration_raw_df.index)
+            calibration_weights_dict[label_name][weight_name] = weight.loc[calibration_indices]
             test_indices = weight.index.intersection(test_raw_df.index)
             test_weights_dict[label_name][weight_name] = weight.loc[test_indices]
 
@@ -262,6 +276,13 @@ if __name__ == '__main__':
         [df.index for df in train_labels_dict.values()] +
         [df.index for weights_dict in train_weights_dict.values() for df in weights_dict.values()]
     )
+    intersection_calibration_index = reduce(
+        lambda x, y: x.intersection(y),
+        [calibration_feat_df.index] +
+        [calibration_raw_df.index] +
+        [df.index for df in calibration_labels_dict.values()] +
+        [df.index for weights_dict in calibration_weights_dict.values() for df in weights_dict.values()]
+    )
     intersection_test_index = reduce(
         lambda x, y: x.intersection(y),
         [test_feat_df.index] +
@@ -272,19 +293,26 @@ if __name__ == '__main__':
     
     # Reindex all dataframes to the common indices
     train_raw_df = train_raw_df.reindex(intersection_train_index)
+    calibration_raw_df = calibration_raw_df.reindex(intersection_calibration_index)
     test_raw_df = test_raw_df.reindex(intersection_test_index)
 
     train_feat_df = train_feat_df.reindex(intersection_train_index)
+    calibration_feat_df = calibration_feat_df.reindex(intersection_calibration_index)
     test_feat_df = test_feat_df.reindex(intersection_test_index)
 
     for label_name, labels in train_labels_dict.items():
         train_labels_dict[label_name] = labels.reindex(intersection_train_index)
+    for label_name, labels in calibration_labels_dict.items():
+        calibration_labels_dict[label_name] = labels.reindex(intersection_calibration_index)
     for label_name, labels in test_labels_dict.items():
         test_labels_dict[label_name] = labels.reindex(intersection_test_index)
     
     for label_name, weights in train_weights_dict.items():
         for weight_name, weight in weights.items():
             train_weights_dict[label_name][weight_name] = weight.reindex(intersection_train_index)
+    for label_name, weights in calibration_weights_dict.items():
+        for weight_name, weight in weights.items():
+            calibration_weights_dict[label_name][weight_name] = weight.reindex(intersection_calibration_index)
     for label_name, weights in test_weights_dict.items():
         for weight_name, weight in weights.items():
             test_weights_dict[label_name][weight_name] = weight.reindex(intersection_test_index)
@@ -296,16 +324,20 @@ if __name__ == '__main__':
 
     ensure_directory_exists(f'{base_path}/data/raw')
     train_raw_df.to_csv(f'{base_path}/data/raw/train_{INTERVAL}_{format_date(train_raw_df.index[0])}_{format_date(train_raw_df.index[-1])}.csv')
+    calibration_raw_df.to_csv(f'{base_path}/data/raw/calibration_{INTERVAL}_{format_date(calibration_raw_df.index[0])}_{format_date(calibration_raw_df.index[-1])}.csv')
     test_raw_df.to_csv(f'{base_path}/data/raw/test_{INTERVAL}_{format_date(test_raw_df.index[0])}_{format_date(test_raw_df.index[-1])}.csv')
 
     ensure_directory_exists(f'{base_path}/data/feat')
     train_feat_df.to_csv(f'{base_path}/data/feat/train_{INTERVAL}_{format_date(train_feat_df.index[0])}_{format_date(train_feat_df.index[-1])}.csv')
+    calibration_feat_df.to_csv(f'{base_path}/data/feat/calibration_{INTERVAL}_{format_date(calibration_feat_df.index[0])}_{format_date(calibration_feat_df.index[-1])}.csv')
     test_feat_df.to_csv(f'{base_path}/data/feat/test_{INTERVAL}_{format_date(test_feat_df.index[0])}_{format_date(test_feat_df.index[-1])}.csv')
 
     ensure_directory_exists(f'{base_path}/labels')
     pd.to_pickle(train_labels_dict, f'{base_path}/labels/all_labels_train_{INTERVAL}_{format_date(train_labels_dict["ct_two_state"].index[0])}_{format_date(train_labels_dict["ct_two_state"].index[-1])}.pkl')
+    pd.to_pickle(calibration_labels_dict, f'{base_path}/labels/all_labels_calibration_{INTERVAL}_{format_date(calibration_labels_dict["ct_two_state"].index[0])}_{format_date(calibration_labels_dict["ct_two_state"].index[-1])}.pkl')
     pd.to_pickle(test_labels_dict, f'{base_path}/labels/all_labels_test_{INTERVAL}_{format_date(test_labels_dict["ct_two_state"].index[0])}_{format_date(test_labels_dict["ct_two_state"].index[-1])}.pkl')
 
     ensure_directory_exists(f'{base_path}/weights')
     pd.to_pickle(train_weights_dict, f'{base_path}/weights/all_weights_train_{INTERVAL}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(train_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
+    pd.to_pickle(calibration_weights_dict, f'{base_path}/weights/all_weights_calibration_{INTERVAL}_{format_date(calibration_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(calibration_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')
     pd.to_pickle(test_weights_dict, f'{base_path}/weights/all_weights_test_{INTERVAL}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[0])}_{format_date(test_weights_dict["ct_two_state"]["backward_looking"].index[-1])}.pkl')

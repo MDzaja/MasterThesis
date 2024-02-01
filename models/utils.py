@@ -326,16 +326,29 @@ def train_model(model, X_train, Y_train, X_val, Y_val, train_weights, val_weight
     return model
 
 
+def custom_time_series_split(X, n_splits=5):
+    if n_splits > 1:
+        tscv = TimeSeriesSplit(n_splits=n_splits)
+        return tscv.split(X)
+    else:
+        test_size = 0.2
+        # Perform a single split in an 80:20 ratio
+        split_point = int((1 - test_size) * len(X))
+        train_index = np.arange(0, split_point)
+        val_index = np.arange(split_point, len(X))
+        return [(train_index, val_index)]
+
+
 @profile
 def custom_cross_val(params, X, Y, W, build_model_gp, n_splits, epochs, batch_size, early_stopping_patience, directory, useWeightsForEval, useClassBalance, verbosity_level=0):
-    tscv = TimeSeriesSplit(n_splits=n_splits)
     all_metrics = {}
     best_val_auc = float('-inf')
     best_model = None
 
     memory_log_path = os.path.join(directory, "memory_usage.log")#TODO
 
-    for train_index, val_index in tscv.split(X):
+    splits = custom_time_series_split(X, n_splits=n_splits)
+    for train_index, val_index in splits:
 
         mem_before = get_memory_usage()#TODO
         with open(memory_log_path, "a") as mem_log:

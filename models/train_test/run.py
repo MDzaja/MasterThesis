@@ -64,12 +64,12 @@ def test_model(data_type, label_name, weight_name, model_name,
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"Current time: {current_datetime}", flush=True)
         mean_metrics, best_model = model_utils.custom_cross_val(hp_dict, Xs['train'], Ys['train'], Ws['train'],
-                                                                        build_func,
-                                                                        n_splits, epochs, batch_size,
-                                                                        es_patience, directory,
-                                                                        useWeightsForEval=False,
-                                                                        useClassBalance=use_class_balancing,
-                                                                        verbosity_level=0)
+                                                                            build_func,
+                                                                            n_splits, epochs, batch_size,
+                                                                            es_patience, directory,
+                                                                            useWeightsForEval=False,
+                                                                            useClassBalance=use_class_balancing,
+                                                                            verbosity_level=0)
         print(f"Finished training {model_name} on {data_type} data with {label_name} labeling and {'CB_' if use_class_balancing else ''}{weight_name} weighting.", flush=True)
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"Current time: {current_datetime}", flush=True)
@@ -154,11 +154,18 @@ def run_models(config):
             all_weights = {wn: weights_config['all'] for wn in all_weight_names}
             weights_config = {**all_weights, **{k: v for k, v in weights_config.items() if k != 'all'}}
 
-        for data_type, data_paths in data_config.items():
+        for data_type, data_props in data_config.items():
             Xs = {}
             data = {}
-            for data_stage, data_path in data_paths.items():
+            for data_stage, data_path in data_props.items():
+                if data_stage == 'drop_duplicates' or data_stage == 'drop_zero_volume':
+                    continue
                 data[data_stage] = model_utils.load_data(data_path)
+                if data_stage == 'train':
+                    if 'drop_duplicates' in data_props:
+                        data.drop_duplicates(inplace=True)
+                    if 'drop_zero_volume' in data_props:
+                        data = data[data['Volume'] != 0]
                 Xs[data_stage] = model_utils.get_X_day_separated(data[data_stage], window_size, data['train'])
 
             for label_name, label_paths in label_config.items():
