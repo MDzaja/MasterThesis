@@ -15,6 +15,7 @@ from models import CNN_LSTM as cnn_lstm_impl
 from models import transformer as tr_impl
 from models import utils as model_utils
 from backtest import utils as backtest_utils
+from models.xgboost import train_test as xgb_impl
 
 
 def parse_args():
@@ -109,7 +110,7 @@ def test_model(data_type, label_name, weight_name, model_name,
         combined_index = probs_s.index.union(data[stage].index)
         probs_s = probs_s.reindex(combined_index, fill_value=0)
         probs_dict[stage]['probs'] = probs_s
-        bt_result, threshold = backtest_utils.do_backtest_w_optimization(data[stage], probs_dict[stage]['probs'], save_backtest_plot_path)
+        bt_result = backtest_utils.do_backtest(data[stage], probs_dict[stage]['probs'], save_backtest_plot_path)
 
         results[name] = {
             "loss": eval_results[0],
@@ -118,7 +119,9 @@ def test_model(data_type, label_name, weight_name, model_name,
             "recall": eval_results[3],
             "auc": eval_results[4],
             "cumulative_return": bt_result['Return [%]'] / 100,
-            "threshold": threshold
+            "exposure_time": bt_result['Exposure Time [%]'] / 100,
+            "trades": bt_result['# Trades'],
+            "duration": bt_result['Duration']
         }
 
     return results, probs_dict['train'], probs_dict['test']
@@ -197,17 +200,28 @@ def run_models(config):
                         if comb_name in metrics.keys():
                             print(f"Skipping {comb_name} because it has already been processed.", flush=True)
                             continue
-
-                        metrics[comb_name], probs_train[comb_name], probs_test[comb_name] = test_model(
-                            data_type, label_name, weight_name, model_name,
-                            copy.deepcopy(data),
-                            copy.deepcopy(Xs), copy.deepcopy(Ys),
-                            copy.deepcopy(Ws), copy.deepcopy(hp_dict),
-                            use_class_balancing,
-                            model_params['batch_size'], model_params['epochs'],
-                            model_params['early_stopping_patience'], model_params['cv_splits'],
-                            config['directory'], config['window_size']
-                        )
+                        
+                        if model_name == 'xgboost':
+                            metrics[comb_name], probs_train[comb_name], probs_test[comb_name] = xgb_impl.test_model(
+                                data_type, label_name, weight_name, model_name,
+                                copy.deepcopy(data),
+                                copy.deepcopy(Xs), copy.deepcopy(Ys),
+                                copy.deepcopy(Ws), copy.deepcopy(hp_dict),
+                                use_class_balancing,
+                                model_params['cv_splits'],
+                                config['directory']
+                            )
+                        else:
+                            metrics[comb_name], probs_train[comb_name], probs_test[comb_name] = test_model(
+                                data_type, label_name, weight_name, model_name,
+                                copy.deepcopy(data),
+                                copy.deepcopy(Xs), copy.deepcopy(Ys),
+                                copy.deepcopy(Ws), copy.deepcopy(hp_dict),
+                                use_class_balancing,
+                                model_params['batch_size'], model_params['epochs'],
+                                model_params['early_stopping_patience'], model_params['cv_splits'],
+                                config['directory'], config['window_size']
+                            )
 
                         # Save results
                         save_results(metrics, probs_train, probs_test, config['directory'])

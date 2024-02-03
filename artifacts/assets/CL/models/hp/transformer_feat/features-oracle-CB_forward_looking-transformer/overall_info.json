@@ -1,0 +1,66 @@
+{
+    "best_trial": {
+        "trial_num": 15,
+        "hyperparameters": {
+            "num_transformer_blocks": 3,
+            "head_size": 256,
+            "num_heads": 8,
+            "ff_dim": 64,
+            "transformer_dropout": 0.0,
+            "num_mlp_layers": 1,
+            "mlp_units_0": 512,
+            "mlp_dropout": 0.5,
+            "learning_rate": 0.00020488432753657646,
+            "decay_steps": 1000,
+            "decay_rate": 0.99,
+            "mlp_units_1": 512,
+            "mlp_units_2": 32,
+            "mlp_units_3": 32
+        },
+        "score": 0.5568042635917664,
+        "metrics": {
+            "train_loss": 0.6084904909133911,
+            "val_loss": 0.6589854598045349,
+            "train_binary_accuracy": 0.6206571340560914,
+            "val_binary_accuracy": 0.5875156879425049,
+            "train_precision": 0.6157395601272583,
+            "val_precision": 0.5977598190307617,
+            "train_recall": 0.9755882263183594,
+            "val_recall": 0.9466763377189636,
+            "train_auc": 0.5873250842094422,
+            "val_auc": 0.5568042635917664
+        }
+    },
+    "worst_trial": {
+        "trial_num": 1,
+        "hyperparameters": {
+            "num_transformer_blocks": 2,
+            "head_size": 112,
+            "num_heads": 8,
+            "ff_dim": 20,
+            "transformer_dropout": 0.16475275599940728,
+            "num_mlp_layers": 2,
+            "mlp_units_0": 378,
+            "mlp_dropout": 0.07601851764570834,
+            "learning_rate": 0.03497654197707491,
+            "decay_steps": 5212,
+            "decay_rate": 0.9032998642488869,
+            "mlp_units_1": 435,
+            "mlp_units_2": 71,
+            "mlp_units_3": 511
+        },
+        "score": 0.5,
+        "metrics": {
+            "train_loss": 0.6314709305763244,
+            "val_loss": 0.6344215750694275,
+            "train_binary_accuracy": 0.5920123219490051,
+            "val_binary_accuracy": 0.5931957364082336,
+            "train_precision": 0.5920121669769287,
+            "val_precision": 0.5931959271430969,
+            "train_recall": 1.0,
+            "val_recall": 1.0,
+            "train_auc": 0.4999866008758545,
+            "val_auc": 0.5
+        }
+    }
+}

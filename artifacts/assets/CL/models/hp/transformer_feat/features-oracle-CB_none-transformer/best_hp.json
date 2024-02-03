@@ -1,0 +1,16 @@
+{
+  "num_transformer_blocks": 3,
+  "head_size": 46,
+  "num_heads": 8,
+  "ff_dim": 25,
+  "transformer_dropout": 0.3189121173370648,
+  "num_mlp_layers": 1,
+  "mlp_units_0": 229,
+  "mlp_dropout": 0.3848359083871423,
+  "learning_rate": 0.00046251888728944773,
+  "decay_steps": 5014,
+  "decay_rate": 0.8765037803380207,
+  "mlp_units_1": 427,
+  "mlp_units_2": 394,
+  "mlp_units_3": 500
+}

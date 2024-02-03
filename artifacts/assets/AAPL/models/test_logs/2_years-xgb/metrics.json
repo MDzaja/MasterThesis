@@ -1,0 +1,46 @@
+{
+   "D-features;L-fixed_time_horizon;W-none;M-xgboost": {
+      "train": {
+         "accuracy": 0.7889150943396226,
+         "f1": 0.83129123468426,
+         "mse": 0.22369594313287242,
+         "auc": 0.9204408616537328,
+         "cumulative_return": -0.07128853942399292,
+         "exposure_time": 0.703125,
+         "trades": 152,
+         "duration": 3.0694444444444446
+      },
+      "test": {
+         "accuracy": 0.5123152709359606,
+         "f1": 0.6369827134625459,
+         "mse": 0.25031672466205157,
+         "auc": 0.5476736254322789,
+         "cumulative_return": -0.06625323649599177,
+         "exposure_time": 0.768107804604155,
+         "trades": 154,
+         "duration": 8.09375
+      }
+   },
+   "D-features;L-fixed_time_horizon;W-CB_trend_interval_return;M-xgboost": {
+      "train": {
+         "accuracy": 0.6049528301886793,
+         "f1": 0.6281908990011099,
+         "mse": 0.23385361243750374,
+         "auc": 0.650393586655963,
+         "cumulative_return": -0.02696945637999506,
+         "exposure_time": 0.5321691176470589,
+         "trades": 126,
+         "duration": 3.0694444444444446
+      },
+      "test": {
+         "accuracy": 0.4989444053483462,
+         "f1": 0.5109890109890108,
+         "mse": 0.25646647499097047,
+         "auc": 0.4949494749198896,
+         "cumulative_return": -0.07174052799199289,
+         "exposure_time": 0.5435148792813026,
+         "trades": 202,
+         "duration": 8.09375
+      }
+   }
+}

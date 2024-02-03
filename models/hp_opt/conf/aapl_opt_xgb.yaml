@@ -1,0 +1,48 @@
+gpu_id: 1 # GPU ID to use; possible values: 0, 1
+directory: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb
+window_size: 60
+
+label_common_path: &label_common_path /home/mdzaja/MasterThesis/artifacts/assets/AAPL/labels/all_labels_train_1m_2010-10-11_2012-11-06.pkl
+features_common_path: &features_common_path /home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/feat/train_1m_2010-10-11_2012-11-06.csv
+weights_common_path: &weights_common_path /home/mdzaja/MasterThesis/artifacts/assets/AAPL/weights/all_weights_train_1m_2010-10-11_2012-11-06.pkl
+
+combinations:
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      fixed_time_horizon:
+        path: *label_common_path
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+      trend_interval_return:
+        path: *weights_common_path
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        path: *features_common_path
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        trial_num: 2
+        cv_splits: 5 # Number of cross-validation splits, must be at least 2
+  
+  # - labels:
+  #     # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+  #     fixed_time_horizon:
+  #       path: *label_common_path
+  #   weights:
+  #     # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+  #     # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+  #     none:
+  #       class_balance:
+  #   data:
+  #     # Possible values: "raw", "features"
+  #     features:
+  #       path: *features_common_path
+  #   model:
+  #     # Possible values: "cnn_lstm", "lstm", "transformer"
+  #     xgboost:
+  #       trial_num: 2
+  #       cv_splits: 5 # Number of cross-validation splits, must be at least 2

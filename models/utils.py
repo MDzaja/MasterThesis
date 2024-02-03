@@ -22,6 +22,7 @@ import psutil
 import yaml
 from memory_profiler import profile
 import copy
+from datetime import timedelta
 
 from labels import oracle
 
@@ -167,6 +168,9 @@ def convert_types(obj):
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
+    elif isinstance(obj, timedelta):
+        # Convert to a total number of days (float)
+        return obj.total_seconds() / (24 * 60 * 60)
     return obj
 
 

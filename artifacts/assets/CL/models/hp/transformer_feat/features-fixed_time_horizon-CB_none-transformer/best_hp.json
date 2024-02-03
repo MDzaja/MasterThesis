@@ -1,16 +1,16 @@
 {
   "num_transformer_blocks": 3,
-  "head_size": 245,
+  "head_size": 145,
   "num_heads": 2,
-  "ff_dim": 34,
-  "transformer_dropout": 0.26170955635525006,
-  "num_mlp_layers": 1,
-  "mlp_units_0": 422,
-  "mlp_dropout": 0.007278367274014043,
-  "learning_rate": 0.0004184464969282548,
-  "decay_steps": 9780,
-  "decay_rate": 0.8722157949704078,
-  "mlp_units_1": 339,
-  "mlp_units_2": 150,
-  "mlp_units_3": 351
+  "ff_dim": 14,
+  "transformer_dropout": 0.0,
+  "num_mlp_layers": 2,
+  "mlp_units_0": 512,
+  "mlp_dropout": 0.5,
+  "learning_rate": 0.0001,
+  "decay_steps": 9618,
+  "decay_rate": 0.9048051587575329,
+  "mlp_units_1": 512,
+  "mlp_units_2": 32,
+  "mlp_units_3": 223
 }

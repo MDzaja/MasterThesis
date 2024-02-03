@@ -11,6 +11,7 @@ from models import LSTM as lstm
 from models import transformer as tr
 from models import utils as model_utils
 from models.hp_opt import optimization as cv_opt
+from models.xgboost import hp_opt as xgb_opt
 
 
 def parse_args():
@@ -90,6 +91,8 @@ def main(config):
                             build_model_gp, search_space = lstm.build_model_gp, lstm.define_search_space()
                         elif model_name == 'transformer':
                             build_model_gp, search_space = tr.build_model_gp, tr.define_search_space()
+                        elif model_name == 'xgboost':
+                            pass
                         else:
                             raise ValueError(f"Unknown model name: {model_name}")
 
@@ -105,19 +108,26 @@ def main(config):
                         if os.path.exists(finished_file):
                             print(f"Skipping optimization for {combination_dir} as it's already completed.")
                             continue
-
-                        # Hyperparameter Optimization with Cross-Validation
-                        cv_opt.hp_opt_cv(
-                            build_model_gp, search_space, X, Y, W, 
-                            combination_dir,
-                            use_class_balancing=use_class_balancing,
-                            trial_num=model_params['trial_num'],
-                            initial_random_trials=model_params['initial_random_trials'],
-                            early_stopping_patience=model_params['early_stopping_patience'],
-                            epochs=model_params['epochs'],
-                            batch_size=model_params['batch_size'],
-                            n_splits=model_params['cv_splits']
-                        )
+                        
+                        if model_name == 'xgboost':
+                            xgb_opt.xgb_hp_opt_cv(
+                                X, Y, W, combination_dir, use_class_balancing,
+                                trial_num=model_params['trial_num'],
+                                n_splits=model_params['cv_splits']
+                            )
+                        else:
+                            # Hyperparameter Optimization with Cross-Validation
+                            cv_opt.hp_opt_cv(
+                                build_model_gp, search_space, X, Y, W, 
+                                combination_dir,
+                                use_class_balancing=use_class_balancing,
+                                trial_num=model_params['trial_num'],
+                                initial_random_trials=model_params['initial_random_trials'],
+                                early_stopping_patience=model_params['early_stopping_patience'],
+                                epochs=model_params['epochs'],
+                                batch_size=model_params['batch_size'],
+                                n_splits=model_params['cv_splits']
+                            )
 
                         # Create a .finished file after completion
                         with open(finished_file, 'w') as file:
