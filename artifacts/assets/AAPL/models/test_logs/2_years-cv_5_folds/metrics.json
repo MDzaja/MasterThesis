@@ -29,8 +29,11 @@
          "precision": 0.7226697206497192,
          "recall": 0.5093268156051636,
          "auc": 0.7195959687232971,
-         "cumulative_return": -0.01991628091199382,
-         "threshold": 0.7880000000000004
+         "cumulative_return": -0.10322682559598868,
+         "threshold": 0.5,
+         "exposure_time": 0.3971631205673759,
+         "trades": 311,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_three_state;W-none;M-transformer": {
@@ -63,8 +66,11 @@
          "precision": 0.7880434989929199,
          "recall": 0.6031613945960999,
          "auc": 0.7984777688980103,
-         "cumulative_return": -0.006427506719996018,
-         "threshold": 0.40900000000000003
+         "cumulative_return": -0.017797920011995847,
+         "threshold": 0.5,
+         "exposure_time": 0.3367105707531239,
+         "trades": 79,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-fixed_time_horizon;W-none;M-transformer": {
@@ -97,8 +103,11 @@
          "precision": 0.651949942111969,
          "recall": 0.7377185821533203,
          "auc": 0.7360775470733643,
-         "cumulative_return": -0.052577977275993,
-         "threshold": 0.7950000000000004
+         "cumulative_return": -0.20389375990797817,
+         "threshold": 0.5,
+         "exposure_time": 0.6555217831813578,
+         "trades": 589,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-oracle;W-none;M-transformer": {
@@ -131,8 +140,11 @@
          "precision": 0.6670601963996887,
          "recall": 0.7896575927734375,
          "auc": 0.6547610759735107,
-         "cumulative_return": 0.003401276864005194,
-         "threshold": 0.4
+         "cumulative_return": -0.06441086253198645,
+         "threshold": 0.5,
+         "exposure_time": 0.6707193515704154,
+         "trades": 301,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_two_state;W-CB_none;M-transformer": {
@@ -166,7 +178,10 @@
          "recall": 0.0,
          "auc": 0.5,
          "cumulative_return": 0.0,
-         "threshold": 0.4
+         "threshold": 0.5,
+         "exposure_time": 0.0,
+         "trades": 0,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_three_state;W-CB_none;M-transformer": {
@@ -200,7 +215,10 @@
          "recall": 1.0,
          "auc": 0.5,
          "cumulative_return": 0.027950400992000142,
-         "threshold": 0.4
+         "threshold": 0.5,
+         "exposure_time": 0.8172914555893278,
+         "trades": 9,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-fixed_time_horizon;W-CB_none;M-transformer": {
@@ -233,8 +251,11 @@
          "precision": 0.6603618264198303,
          "recall": 0.6686094999313354,
          "auc": 0.7370575666427612,
-         "cumulative_return": -0.08557086381199079,
-         "threshold": 0.7940000000000004
+         "cumulative_return": -0.19873464898397825,
+         "threshold": 0.5,
+         "exposure_time": 0.6014859844647079,
+         "trades": 571,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-oracle;W-CB_none;M-transformer": {
@@ -267,8 +288,11 @@
          "precision": 0.68388432264328,
          "recall": 0.6939203143119812,
          "auc": 0.6524150967597961,
-         "cumulative_return": 0.0035139064160017368,
-         "threshold": 0.7520000000000003
+         "cumulative_return": -0.1120376103519855,
+         "threshold": 0.5,
+         "exposure_time": 0.6102668017561634,
+         "trades": 363,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_two_state;W-CB_trend_interval_return;M-transformer": {
@@ -301,8 +325,11 @@
          "precision": 0.6601049900054932,
          "recall": 0.4079481065273285,
          "auc": 0.6382967233657837,
-         "cumulative_return": -0.017309789003997867,
-         "threshold": 0.7990000000000004
+         "cumulative_return": -0.08865236749598916,
+         "threshold": 0.5,
+         "exposure_time": 0.3397500844309355,
+         "trades": 246,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_three_state;W-CB_trend_interval_return;M-transformer": {
@@ -335,8 +362,11 @@
          "precision": 0.8077878952026367,
          "recall": 0.8111481070518494,
          "auc": 0.8839311003684998,
-         "cumulative_return": -0.019887499167993157,
-         "threshold": 0.5360000000000001
+         "cumulative_return": -0.024664164331994653,
+         "threshold": 0.5,
+         "exposure_time": 0.44883485309017224,
+         "trades": 127,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-fixed_time_horizon;W-CB_trend_interval_return;M-transformer": {
@@ -369,8 +399,11 @@
          "precision": 0.584269642829895,
          "recall": 0.5628643035888672,
          "auc": 0.6276723146438599,
-         "cumulative_return": -0.06754960475599055,
-         "threshold": 0.7990000000000004
+         "cumulative_return": -0.14535629421998436,
+         "threshold": 0.5,
+         "exposure_time": 0.5241472475515029,
+         "trades": 399,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-oracle;W-CB_trend_interval_return;M-transformer": {
@@ -403,8 +436,11 @@
          "precision": 0.6358620524406433,
          "recall": 0.6443046927452087,
          "auc": 0.5688923597335815,
-         "cumulative_return": -0.06385903939599175,
-         "threshold": 0.7990000000000004
+         "cumulative_return": -0.09883030292399253,
+         "threshold": 0.5,
+         "exposure_time": 0.5764944275582573,
+         "trades": 263,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-fixed_time_horizon;W-CB_forward_looking;M-transformer": {
@@ -437,8 +473,11 @@
          "precision": 0.4913840889930725,
          "recall": 0.7360532879829407,
          "auc": 0.4998030662536621,
-         "cumulative_return": 0.027950400992000142,
-         "threshold": 0.4
+         "cumulative_return": -0.025781269715999408,
+         "threshold": 0.5,
+         "exposure_time": 0.6099290780141844,
+         "trades": 16,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-oracle;W-CB_forward_looking;M-transformer": {
@@ -471,8 +510,11 @@
          "precision": 0.6071887016296387,
          "recall": 0.6610761880874634,
          "auc": 0.523223876953125,
-         "cumulative_return": 0.025639788692002004,
-         "threshold": 0.404
+         "cumulative_return": -0.0507515514119943,
+         "threshold": 0.5,
+         "exposure_time": 0.5822357311719014,
+         "trades": 170,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_two_state;W-CB_forward_looking;M-transformer": {
@@ -505,8 +547,11 @@
          "precision": 0.7278911471366882,
          "recall": 0.08678021281957626,
          "auc": 0.5761081576347351,
-         "cumulative_return": -0.001339483423999991,
-         "threshold": 0.7070000000000003
+         "cumulative_return": -0.020193676647996654,
+         "threshold": 0.5,
+         "exposure_time": 0.0712597095575819,
+         "trades": 65,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_three_state;W-CB_forward_looking;M-transformer": {
@@ -539,8 +584,11 @@
          "precision": 0.7126590609550476,
          "recall": 0.8851913213729858,
          "auc": 0.8668485879898071,
-         "cumulative_return": -0.01788065367199579,
-         "threshold": 0.4650000000000001
+         "cumulative_return": -0.0241620717119953,
+         "threshold": 0.5,
+         "exposure_time": 0.5406957109084769,
+         "trades": 115,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_two_state;W-trend_interval_return;M-transformer": {
@@ -573,8 +621,11 @@
          "precision": 0.6327999830245972,
          "recall": 0.6415247321128845,
          "auc": 0.6434801816940308,
-         "cumulative_return": -0.05018606131999422,
-         "threshold": 0.7980000000000004
+         "cumulative_return": -0.08967941223198904,
+         "threshold": 0.5,
+         "exposure_time": 0.5150287065180682,
+         "trades": 280,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_three_state;W-trend_interval_return;M-transformer": {
@@ -607,8 +658,11 @@
          "precision": 0.8399999737739563,
          "recall": 0.6638935208320618,
          "auc": 0.8624088168144226,
-         "cumulative_return": -0.04186932957599256,
-         "threshold": 0.43400000000000005
+         "cumulative_return": -0.0450899734399929,
+         "threshold": 0.5,
+         "exposure_time": 0.3596757852077001,
+         "trades": 119,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-fixed_time_horizon;W-trend_interval_return;M-transformer": {
@@ -641,8 +695,11 @@
          "precision": 0.6172441840171814,
          "recall": 0.6378018260002136,
          "auc": 0.6646779775619507,
-         "cumulative_return": -0.09489531444798267,
-         "threshold": 0.7840000000000004
+         "cumulative_return": -0.14673883883598027,
+         "threshold": 0.5,
+         "exposure_time": 0.5589327929753461,
+         "trades": 419,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-oracle;W-trend_interval_return;M-transformer": {
@@ -675,8 +732,11 @@
          "precision": 0.6151746511459351,
          "recall": 0.7875611186027527,
          "auc": 0.5791866779327393,
-         "cumulative_return": -0.009520422235996194,
-         "threshold": 0.402
+         "cumulative_return": -0.06012099419599344,
+         "threshold": 0.5,
+         "exposure_time": 0.6899696048632219,
+         "trades": 217,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_two_state;W-forward_looking;M-transformer": {
@@ -709,8 +769,11 @@
          "precision": 0.6349557638168335,
          "recall": 0.46553122997283936,
          "auc": 0.6367688179016113,
-         "cumulative_return": -0.008484539075998691,
-         "threshold": 0.7850000000000004
+         "cumulative_return": -0.05844256510398809,
+         "threshold": 0.5,
+         "exposure_time": 0.38432961837217156,
+         "trades": 238,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-ct_three_state;W-forward_looking;M-transformer": {
@@ -743,8 +806,11 @@
          "precision": 0.8434476852416992,
          "recall": 0.79783695936203,
          "auc": 0.8994774222373962,
-         "cumulative_return": -0.06275472260799324,
-         "threshold": 0.7380000000000003
+         "cumulative_return": -0.08089765107999247,
+         "threshold": 0.5,
+         "exposure_time": 0.4387031408308004,
+         "trades": 168,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-fixed_time_horizon;W-forward_looking;M-transformer": {
@@ -778,7 +844,10 @@
          "recall": 1.0,
          "auc": 0.4973847270011902,
          "cumulative_return": 0.027950400992000142,
-         "threshold": 0.4
+         "threshold": 0.5,
+         "exposure_time": 0.8172914555893278,
+         "trades": 9,
+         "duration": 13.227777777777778
       }
    },
    "D-features;L-oracle;W-forward_looking;M-transformer": {
@@ -812,7 +881,10 @@
          "recall": 1.0,
          "auc": 0.5283463597297668,
          "cumulative_return": 0.027950400992000142,
-         "threshold": 0.4
+         "threshold": 0.5,
+         "exposure_time": 0.8172914555893278,
+         "trades": 9,
+         "duration": 13.227777777777778
       }
    }
 }

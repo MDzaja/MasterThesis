@@ -44,3 +44,18 @@ def do_backtest_w_optimization(data: pd.DataFrame, probs: pd.Series, save_plot_p
             os.makedirs(os.path.dirname(save_plot_path))
         bt.plot(filename=save_plot_path, open_browser=False)
     return results, opt_results._strategy.threshold
+
+def do_backtest_w_buy_n_hold(data: pd.DataFrame, save_plot_path=None):
+    BuyAndHoldIntradayStrategy = strategies.BuyAndHoldStrategyFactory(0)
+    bt = Backtest(data,
+                  BuyAndHoldIntradayStrategy,
+                  cash=10000,
+                  commission=0.0004,
+                  trade_on_close=True,
+                  exclusive_orders=True)
+    results = bt.run()
+    if save_plot_path:
+        if not os.path.exists(os.path.dirname(save_plot_path)):
+            os.makedirs(os.path.dirname(save_plot_path))
+        bt.plot(filename=save_plot_path, open_browser=False)
+    return results
