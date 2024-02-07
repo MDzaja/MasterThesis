@@ -1,4 +1,4 @@
-gpu_id: 1
+gpu_id: 0
 directory: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/test_logs/2_years-xgb
 window_size: 60
 
@@ -10,6 +10,88 @@ features_train: &features_train /home/mdzaja/MasterThesis/artifacts/assets/AAPL/
 features_test: &features_test /home/mdzaja/MasterThesis/artifacts/assets/AAPL/data/feat/test_1m_2012-11-07_2012-11-20.csv
 
 combinations:
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_two_state-none-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_two_state-CB_none-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_three_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_three_state-none-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_three_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_three_state-CB_none-xgboost/best_hp.json
+        cv_splits: 5
+
   - labels:
       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
       fixed_time_horizon:
@@ -38,6 +120,182 @@ combinations:
     weights:
       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-fixed_time_horizon-CB_none-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-oracle-none-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      none:
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-oracle-CB_none-xgboost/best_hp.json
+        cv_splits: 5
+
+########################################################################################################################
+  
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_two_state-trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_two_state-CB_trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_three_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_three_state-trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_three_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_three_state-CB_trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      fixed_time_horizon:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-fixed_time_horizon-trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
+
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      fixed_time_horizon:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
       trend_interval_return:
         train: *weights_train
         test: *weights_test
@@ -53,555 +311,229 @@ combinations:
         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-fixed_time_horizon-CB_trend_interval_return-xgboost/best_hp.json
         cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_three_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       none:
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_three_state-none-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-oracle-trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_three_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       none:
-#         class_balance:
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_three_state-CB_none-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      trend_interval_return:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-oracle-CB_trend_interval_return-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       fixed_time_horizon:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       none:
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-fixed_time_horizon-none-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+########################################################################################################################
+  
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_two_state-forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       fixed_time_horizon:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       none:
-#         class_balance:
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-fixed_time_horizon-CB_none-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_two_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_two_state-CB_forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       oracle:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       none:
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-oracle-none-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_three_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_three_state-forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       oracle:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       none:
-#         class_balance:
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-oracle-CB_none-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      ct_three_state:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-ct_three_state-CB_forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-# ########################################################################################################################
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      fixed_time_horizon:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-fixed_time_horizon-forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_two_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_two_state-trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      fixed_time_horizon:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-fixed_time_horizon-CB_forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_two_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_two_state-CB_trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-oracle-forward_looking-xgboost/best_hp.json
+        cv_splits: 5
 
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_three_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_three_state-trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_three_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_three_state-CB_trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       fixed_time_horizon:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-fixed_time_horizon-trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       fixed_time_horizon:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-fixed_time_horizon-CB_trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       oracle:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-oracle-trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       oracle:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       trend_interval_return:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-oracle-CB_trend_interval_return-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-# ########################################################################################################################
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_two_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_two_state-forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_two_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_two_state-CB_forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_three_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_three_state-forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       ct_three_state:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-ct_three_state-CB_forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       fixed_time_horizon:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-fixed_time_horizon-forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       fixed_time_horizon:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-fixed_time_horizon-CB_forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       oracle:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-oracle-forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
-
-#   - labels:
-#       # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
-#       oracle:
-#         train: *label_train
-#         test: *label_test
-#     weights:
-#       # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
-#       # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
-#       forward_looking:
-#         class_balance:
-#         train: *weights_train
-#         test: *weights_test
-#     data:
-#       # Possible values: "raw", "features"
-#       features:
-#         train: *features_train
-#         test: *features_test
-#     model:
-#       # Possible values: "cnn_lstm", "lstm", "transformer"
-#       transformer:
-#         hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/transformer_feat/features-oracle-CB_forward_looking-transformer/best_hp.json
-#         batch_size: 64
-#         epochs: 200
-#         early_stopping_patience: 30
-#         cv_splits: 1
+  - labels:
+      # Possible values: "all", "ct_two_state", "ct_three_state", "fixed_time_horizon", "oracle", "triple_barrier"
+      oracle:
+        train: *label_train
+        test: *label_test
+    weights:
+      # Possible values: "all", "none", "trend_interval_return", "forward_looking", "sequential_return", "backward_looking"
+      # "all" is equivalent to "trend_interval_return, forward_looking, sequential_return, backward_looking"
+      forward_looking:
+        train: *weights_train
+        test: *weights_test
+        class_balance:
+    data:
+      # Possible values: "raw", "features"
+      features:
+        train: *features_train
+        test: *features_test
+    model:
+      # Possible values: "cnn_lstm", "lstm", "transformer"
+      xgboost:
+        hyperparameters: /home/mdzaja/MasterThesis/artifacts/assets/AAPL/models/hp/2_years-xgb/features-oracle-CB_forward_looking-xgboost/best_hp.json
+        cv_splits: 5

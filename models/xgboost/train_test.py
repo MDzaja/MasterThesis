@@ -16,6 +16,12 @@ def test_model(data_type, label_name, weight_name, model_name,
                n_splits,
                directory):
     
+    hp_dict['n_jobs'] = -1
+    hp_dict['objective'] = 'binary:logistic'
+    hp_dict['eval_metric'] = 'auc'
+    hp_dict['device'] = 'cuda'
+    hp_dict['tree_method'] = 'gpu_hist'
+    hp_dict['predictor'] = 'gpu_predictor'
     xgb_model = xgb.XGBClassifier(**hp_dict)
 
     for stage, _ in Xs.items():
@@ -40,7 +46,7 @@ def test_model(data_type, label_name, weight_name, model_name,
             'label_name': label_name,
         }
         # Use the calibrated model for predictions
-        probs_arr = calibrator.predict_proba(Xs[stage])[:, 1].flatten()  # Get probabilities for the positive class
+        probs_arr = calibrator.predict_proba(Xs[stage])[:, 1].flatten()
         probs_s = pd.Series(probs_arr, index=Ys[stage].index)
         combined_index = probs_s.index.union(data[stage].index)
         probs_s = probs_s.reindex(combined_index, fill_value=0)
@@ -49,7 +55,7 @@ def test_model(data_type, label_name, weight_name, model_name,
         bt_result = backtest_utils.do_backtest(data[stage], probs_dict[stage]['probs'], save_backtest_plot_path)
 
         metrics[stage] = {
-            'accuracy': accuracy_score(Ys[stage], (probs_arr > 0.5).astype(int)),  # Convert probabilities to binary predictions
+            'accuracy': accuracy_score(Ys[stage], (probs_arr > 0.5).astype(int)),
             'f1': f1_score(Ys[stage], (probs_arr > 0.5).astype(int)),
             'mse': mean_squared_error(Ys[stage], probs_arr),
             'auc': roc_auc_score(Ys[stage], probs_arr),

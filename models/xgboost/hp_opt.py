@@ -65,20 +65,27 @@ def objective(trial, X, Y, W, cv_indices_list):
     #train_folds = [[train_index for train_index, _ in cv_indices_list]]
     test_folds = [[test_index for _, test_index in cv_indices_list]]
 
-    # Configure cross-validation
-    cv_results = xgb.cv(
-        params=params,
-        dtrain=dtrain,
-        num_boost_round=n_estimators,
-        folds=test_folds,
-        metrics={'auc'},
-        maximize=True,
-        verbose_eval=False,
-        shuffle=False,
-        seed=0
-    )
+    try:
+        # Configure cross-validation
+        cv_results = xgb.cv(
+            params=params,
+            dtrain=dtrain,
+            num_boost_round=n_estimators,
+            folds=test_folds,
+            metrics={'auc'},
+            maximize=True,
+            verbose_eval=False,
+            shuffle=False,
+            seed=0
+        )
 
-    print(cv_results)
+        mean_auc = cv_results['test-auc-mean'].iloc[-1]
+    except xgb.core.XGBoostError as e:
+        print(f'An XGBoostError occurred during cross-validation: {e}')
+        if "auc <= local_area" in str(e):
+            print("Setting AUC to 0 due to error 'auc <= local_area'")
+            mean_auc = 0
+        else:
+            raise
 
-    mean_auc = cv_results['test-auc-mean'].iloc[-1]
     return mean_auc

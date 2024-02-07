@@ -1,0 +1,1 @@
+{"n_estimators": 164, "booster": "gbtree", "lambda": 1.5755910105133026, "alpha": 0.38870060969028086, "learning_rate": 0.02967769103114482, "max_depth": 25, "min_child_weight": 5, "colsample_bytree": 0.8, "subsample": 0.6}
