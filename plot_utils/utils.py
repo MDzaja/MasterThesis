@@ -113,7 +113,7 @@ def plot_weights(title: str, prices: pd.Series, labels: pd.Series, weights_dict:
     plt.show()
 
 
-def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves', exclude_auc_less_than=0):
+def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves', exclude_auc_less_than=0, hr_legend=False):
     """
     Plot the ROC curves for given true labels and multiple sets of probability estimates.
     Exclude curves with an area under the curve (AUC) less than 0.55.
@@ -126,6 +126,11 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves', exclud
     Returns:
     None: The function will plot the ROC curve for each model.
     """
+    def parse_combination_name(name):
+        parts = name.split(';')
+        return {p.split('-')[0]: p.split('-')[1] for p in parts}
+
+
     plt.figure(figsize=(15, 15))
 
     # Iterate over each model's predictions and plot their ROC curve
@@ -139,7 +144,29 @@ def plot_roc_auc_curves(true_y_dict, y_prob_dict, title='ROC AUC Curves', exclud
         
         # Check if the AUC is greater than or equal to 0.55 before plotting
         if roc_auc >= exclude_auc_less_than:
-            plt.plot(fpr, tpr, lw=2, label=f'{model_name} (area = {roc_auc:.2f})')
+            adapted_model_name = model_name
+            if hr_legend:
+                comb_parts = parse_combination_name(model_name)
+                hr_label_dict = {
+                    'ct_two_state': 'kontinuirano dva stanja',
+                    'ct_three_state': 'kontinuirano tri stanja',
+                    'fixed_time_horizon': 'fiksni vremenski prozor',
+                    'oracle': 'oracle'
+                }
+                hr_label = hr_label_dict[comb_parts['L']]
+
+                hr_weight_dict = {
+                    'none': 'bez težina',
+                    'trend_interval_return': 'povrat intervala trenda',
+                    'forward_looking': 'gledanje unaprijed',
+                    'CB_none': 'uravnotežavanje klasa',
+                    'CB_trend_interval_return': 'uravnotežavanje klasa + povrat intervala trenda',
+                    'CB_forward_looking': 'uravnotežavanje klasa + gledanje unaprijed'
+                }
+                hr_weight = hr_weight_dict[comb_parts['W']]
+                adapted_model_name = f'Oznake-{hr_label}; Težine-{hr_weight}'
+                
+            plt.plot(fpr, tpr, lw=2, label=f'{adapted_model_name} (AUC = {roc_auc:.2f})')
 
     # Add plot formatting
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -372,4 +399,37 @@ def plot_series(probs1, probs2, series_name_1, series_name_2, title):
     plt.legend()
     
     # Display the plot
+    plt.show()
+
+def plot_cv_indices(data: pd.DataFrame, cv_indices: list):
+    fig, ax = plt.subplots()
+    for i, (train_index, val_index) in enumerate(cv_indices):
+        # Generate a continuous bar for train and validation segments
+        ax.barh(y=i, width=train_index[-1], left=0, height=0.3, color='red', label='Train' if i == 0 else "")
+        ax.barh(y=i, width=val_index[-1] - val_index[0], left=val_index[0], height=0.3, color='blue', label='Validation' if i == 0 else "")
+
+    # Formatting plot
+    ax.set_xlabel('Sample Index')
+    ax.set_yticks(np.arange(5))
+    ax.set_yticklabels(['Split %d' % (i + 1) for i in range(5)])
+    ax.set_ylabel('CV Iteration')
+    ax.set_title('TimeSeriesSplit')
+    ax.legend()
+
+    # Set the collected x-ticks and labels
+    xticks = [train_index[0] for i, (train_index, _) in enumerate(cv_indices)]
+    xticks += [train_index[-1] for i, (train_index, _) in enumerate(cv_indices)]
+    xticks += [val_index[-1] for i, (_, val_index) in enumerate(cv_indices)]
+    xticks = sorted(set(xticks))  # Remove duplicates and sort
+    xticklabels = [data.index[xtick].strftime('%Y-%m-%d') for xtick in xticks]
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels, rotation=45)
+
+    # Add vertical grid only and set grid behind bars
+    ax.yaxis.grid(False)  # Disable the horizontal grid
+    ax.xaxis.grid(True)   # Enable the vertical grid
+    ax.set_axisbelow(True)  # Set grid behind the bars
+
+    plt.tight_layout()  # Adjust layout to prevent overlap
     plt.show()
